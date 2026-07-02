@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tic-Tac-Toe vs AI</title>
+<title>Tic-Tac-Toe vs Bot</title>
 <style>
   * {
     box-sizing: border-box;
@@ -158,7 +158,7 @@
 <body>
 
 <div class="card">
-  <h1>Tic-Tac-Toe vs AI</h1>
+  <h1>Tic-Tac-Toe vs Bot</h1>
 
   <div id="setupScreen">
     <div class="controls">
@@ -174,7 +174,7 @@
       <label for="firstPlayer">First move:</label>
       <select id="firstPlayer">
         <option value="human">You (X)</option>
-        <option value="ai">AI (O)</option>
+        <option value="bot">Bot (O)</option>
         <option value="random" selected>Random</option>
       </select>
     </div>
@@ -196,12 +196,12 @@
 <script>
   // ---- Game state ----
   const HUMAN = 'X';
-  const AI = 'O';
+  const BOT = 'O';
 
   let board = Array(9).fill(null);
   let gameOver = false;
-  let boardLocked = false; // disables clicks while the AI is "thinking" or the game has ended
-  let roundId = 0; // bumped on every restart so stale AI timers from a previous round are ignored
+  let boardLocked = false; // disables clicks while the bot is "thinking" or the game has ended
+  let roundId = 0; // bumped on every restart so stale bot timers from a previous round are ignored
 
   const boardEl = document.getElementById('board');
   const statusEl = document.getElementById('status');
@@ -241,7 +241,7 @@
       cell.textContent = board[i] || '';
       cell.classList.remove('x', 'o', 'win');
       if (board[i] === HUMAN) cell.classList.add('x');
-      if (board[i] === AI) cell.classList.add('o');
+      if (board[i] === BOT) cell.classList.add('o');
       cell.classList.toggle('taken', !!board[i]);
       cell.classList.toggle('disabled', boardLocked || gameOver);
       const row = Math.floor(i / 3) + 1;
@@ -288,14 +288,14 @@
       return;
     }
 
-    setStatus('AI thinking...');
-    boardLocked = true; // blocks clicks while the AI "thinks"
+    setStatus('Bot thinking...');
+    boardLocked = true; // blocks clicks while the bot "thinks"
     render();
     const thisRound = roundId;
     setTimeout(() => {
       if (roundId !== thisRound) return; // round was restarted, ignore this stale move
       boardLocked = false;
-      aiTurn();
+      botTurn();
     }, 300);
   }
 
@@ -307,8 +307,8 @@
     setTimeout(() => cells[index].classList.remove('pop'), 180);
   }
 
-  // ---- AI turn ----
-  function aiTurn() {
+  // ---- Bot turn ----
+  function botTurn() {
     if (gameOver) return;
 
     let move;
@@ -323,7 +323,7 @@
 
     if (move === undefined || move === null) return;
 
-    playMove(move, AI);
+    playMove(move, BOT);
 
     const result = checkWinner(board);
     if (result) {
@@ -336,7 +336,7 @@
     setStatus("Player's turn (X)");
   }
 
-  // ---- Easy AI: random valid move ----
+  // ---- Easy bot: random valid move ----
   function getRandomMove(b) {
     const available = b
       .map((v, i) => (v === null ? i : null))
@@ -344,10 +344,10 @@
     return available[Math.floor(Math.random() * available.length)];
   }
 
-  // ---- Medium AI: wins if possible, blocks if necessary, otherwise random ----
+  // ---- Medium bot: wins if possible, blocks if necessary, otherwise random ----
   function getMediumMove(b) {
     // 1. Try to win
-    const winMove = findWinningMove(b, AI);
+    const winMove = findWinningMove(b, BOT);
     if (winMove !== null) return winMove;
 
     // 2. Block the player
@@ -370,14 +370,14 @@
     return null;
   }
 
-  // ---- Hard AI: perfect Minimax ----
+  // ---- Hard bot: perfect Minimax ----
   function getBestMove(b) {
     let bestScore = -Infinity;
     let bestMove = null;
 
     for (let i = 0; i < 9; i++) {
       if (b[i] === null) {
-        b[i] = AI;
+        b[i] = BOT;
         const score = minimax(b, 0, false);
         b[i] = null;
         if (score > bestScore) {
@@ -392,7 +392,7 @@
   function minimax(b, depth, isMaximizing) {
     const result = checkWinner(b);
     if (result) {
-      if (result.winner === AI) return 10 - depth;
+      if (result.winner === BOT) return 10 - depth;
       if (result.winner === HUMAN) return depth - 10;
       return 0; // draw
     }
@@ -401,7 +401,7 @@
       let best = -Infinity;
       for (let i = 0; i < 9; i++) {
         if (b[i] === null) {
-          b[i] = AI;
+          b[i] = BOT;
           best = Math.max(best, minimax(b, depth + 1, false));
           b[i] = null;
         }
@@ -432,14 +432,14 @@
       setStatus('You won! 🎉');
       highlightWin(result.line);
     } else {
-      setStatus('The AI won!');
+      setStatus('The bot won!');
       highlightWin(result.line);
     }
   }
 
   // ---- Start a round from the setup screen ----
   function startRound() {
-    roundId++; // invalidates any AI move still pending from the previous round
+    roundId++; // invalidates any bot move still pending from the previous round
     board = Array(9).fill(null);
     gameOver = false;
     boardLocked = false;
@@ -453,15 +453,15 @@
     render();
 
     const first = firstPlayerEl.value;
-    const aiStarts = first === 'ai' || (first === 'random' && Math.random() < 0.5);
-    if (aiStarts) {
+    const botStarts = first === 'bot' || (first === 'random' && Math.random() < 0.5);
+    if (botStarts) {
       boardLocked = true;
-      setStatus('AI thinking...');
+      setStatus('Bot thinking...');
       render();
       const thisRound = roundId;
       setTimeout(() => {
         if (roundId !== thisRound) return; // a new round started, ignore this stale move
-        aiTurn();
+        botTurn();
       }, 300);
     } else {
       setStatus("Player's turn (X)");
@@ -470,7 +470,7 @@
 
   // ---- Back to the setup screen ----
   function showSetup() {
-    roundId++; // invalidates any AI timer that may still be pending
+    roundId++; // invalidates any bot timer that may still be pending
     gameScreenEl.hidden = true;
     setupScreenEl.hidden = false;
     startBtn.focus();
