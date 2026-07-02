@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tic-Tac-Toe vs AI</title>
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1f2937, #111827);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #f3f4f6;
+  }
+
+  .card {
+    background: #1e293b;
+    border-radius: 16px;
+    padding: 28px 32px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    width: 360px;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    margin: 0 0 18px;
+    color: #facc15;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .controls label {
+    font-size: 0.9rem;
+    color: #cbd5e1;
+  }
+
+  select {
+    background: #334155;
+    color: #f3f4f6;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .game-info {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+  }
+
+  .status {
+    min-height: 28px;
+    margin-bottom: 16px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 8px;
+    width: 280px;
+    height: 280px;
+    margin: 0 auto 20px;
+  }
+
+  .cell {
+    background: #334155;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.4rem;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease, transform 0.1s ease;
+  }
+
+  .cell:focus-visible {
+    outline: 3px solid #facc15;
+    outline-offset: 2px;
+  }
+
+  .cell:hover:not(.taken):not(.disabled) {
+    background: #475569;
+  }
+
+  .cell.pop {
+    animation: pop 0.18s ease;
+  }
+
+  @keyframes pop {
+    from { transform: scale(0.6); }
+    to { transform: scale(1); }
+  }
+
+  .cell.x {
+    color: #38bdf8;
+  }
+
+  .cell.o {
+    color: #f87171;
+  }
+
+  .cell.win {
+    background: #15803d;
+    color: #ffffff;
+  }
+
+  .cell.disabled {
+    cursor: not-allowed;
+  }
+
+  button.action {
+    background: #facc15;
+    color: #1e293b;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+  }
+
+  button.action:hover {
+    filter: brightness(1.1);
+  }
+
+  button.action:focus-visible {
+    outline: 3px solid #f3f4f6;
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Tic-Tac-Toe vs AI</h1>
+
+  <div id="setupScreen">
+    <div class="controls">
+      <label for="difficulty">Difficulty:</label>
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </div>
+
+    <div class="controls">
+      <label for="firstPlayer">First move:</label>
+      <select id="firstPlayer">
+        <option value="human">You (X)</option>
+        <option value="ai">AI (O)</option>
+        <option value="random" selected>Random</option>
+      </select>
+    </div>
+
+    <button class="action" id="startBtn">Start Game</button>
+  </div>
+
+  <div id="gameScreen" hidden>
+    <div class="game-info" id="gameInfo"></div>
+
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+
+    <div class="board" id="board" role="group" aria-label="Game board"></div>
+
+    <button class="action" id="newGameBtn" hidden>New Game</button>
+  </div>
+</div>
+
+<script>
+  // ---- Game state ----
+  const HUMAN = 'X';
+  const AI = 'O';
+
+  let board = Array(9).fill(null);
+  let gameOver = false;
+  let boardLocked = false; // disables clicks while the AI is "thinking" or the game has ended
+  let roundId = 0; // bumped on every restart so stale AI timers from a previous round are ignored
+
+  const boardEl = document.getElementById('board');
+  const statusEl = document.getElementById('status');
+  const difficultyEl = document.getElementById('difficulty');
+  const firstPlayerEl = document.getElementById('firstPlayer');
+  const setupScreenEl = document.getElementById('setupScreen');
+  const gameScreenEl = document.getElementById('gameScreen');
+  const gameInfoEl = document.getElementById('gameInfo');
+  const startBtn = document.getElementById('startBtn');
+  const newGameBtn = document.getElementById('newGameBtn');
+
+  let difficulty = 'medium'; // locked in from the setup screen when a round starts
+
+  // All possible winning combinations
+  const WIN_LINES = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+    [0, 4, 8], [2, 4, 6]             // diagonals
+  ];
+
+  // ---- Build the board on screen ----
+  function buildBoard() {
+    boardEl.innerHTML = '';
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.classList.add('cell');
+      cell.dataset.index = i;
+      cell.addEventListener('click', onCellClick);
+      boardEl.appendChild(cell);
+    }
+  }
+
+  function render() {
+    const cells = boardEl.querySelectorAll('.cell');
+    cells.forEach((cell, i) => {
+      cell.textContent = board[i] || '';
+      cell.classList.remove('x', 'o', 'win');
+      if (board[i] === HUMAN) cell.classList.add('x');
+      if (board[i] === AI) cell.classList.add('o');
+      cell.classList.toggle('taken', !!board[i]);
+      cell.classList.toggle('disabled', boardLocked || gameOver);
+      const row = Math.floor(i / 3) + 1;
+      const col = (i % 3) + 1;
+      cell.setAttribute('aria-label', `Row ${row}, column ${col}: ${board[i] || 'empty'}`);
+      cell.setAttribute('aria-disabled', String(boardLocked || gameOver || !!board[i]));
+    });
+  }
+
+  // ---- Win / draw logic ----
+  function checkWinner(b) {
+    for (const line of WIN_LINES) {
+      const [a, c, d] = line;
+      if (b[a] && b[a] === b[c] && b[a] === b[d]) {
+        return { winner: b[a], line };
+      }
+    }
+    if (b.every(cell => cell)) {
+      return { winner: 'draw', line: null };
+    }
+    return null;
+  }
+
+  function highlightWin(line) {
+    if (!line) return;
+    const cells = boardEl.querySelectorAll('.cell');
+    line.forEach(i => cells[i].classList.add('win'));
+  }
+
+  function setStatus(text) {
+    statusEl.textContent = text;
+  }
+
+  // ---- Human move ----
+  function onCellClick(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (gameOver || boardLocked || board[index]) return;
+
+    playMove(index, HUMAN);
+
+    const result = checkWinner(board);
+    if (result) {
+      endGame(result);
+      return;
+    }
+
+    setStatus('AI thinking...');
+    boardLocked = true; // blocks clicks while the AI "thinks"
+    render();
+    const thisRound = roundId;
+    setTimeout(() => {
+      if (roundId !== thisRound) return; // round was restarted, ignore this stale move
+      boardLocked = false;
+      aiTurn();
+    }, 300);
+  }
+
+  function playMove(index, player) {
+    board[index] = player;
+    render();
+    const cells = boardEl.querySelectorAll('.cell');
+    cells[index].classList.add('pop');
+    setTimeout(() => cells[index].classList.remove('pop'), 180);
+  }
+
+  // ---- AI turn ----
+  function aiTurn() {
+    if (gameOver) return;
+
+    let move;
+
+    if (difficulty === 'easy') {
+      move = getRandomMove(board);
+    } else if (difficulty === 'medium') {
+      move = getMediumMove(board);
+    } else {
+      move = getBestMove(board);
+    }
+
+    if (move === undefined || move === null) return;
+
+    playMove(move, AI);
+
+    const result = checkWinner(board);
+    if (result) {
+      endGame(result);
+      return;
+    }
+
+    boardLocked = false;
+    render();
+    setStatus("Player's turn (X)");
+  }
+
+  // ---- Easy AI: random valid move ----
+  function getRandomMove(b) {
+    const available = b
+      .map((v, i) => (v === null ? i : null))
+      .filter(v => v !== null);
+    return available[Math.floor(Math.random() * available.length)];
+  }
+
+  // ---- Medium AI: wins if possible, blocks if necessary, otherwise random ----
+  function getMediumMove(b) {
+    // 1. Try to win
+    const winMove = findWinningMove(b, AI);
+    if (winMove !== null) return winMove;
+
+    // 2. Block the player
+    const blockMove = findWinningMove(b, HUMAN);
+    if (blockMove !== null) return blockMove;
+
+    // 3. Play randomly
+    return getRandomMove(b);
+  }
+
+  function findWinningMove(b, player) {
+    for (let i = 0; i < 9; i++) {
+      if (b[i] === null) {
+        const copy = b.slice();
+        copy[i] = player;
+        const result = checkWinner(copy);
+        if (result && result.winner === player) return i;
+      }
+    }
+    return null;
+  }
+
+  // ---- Hard AI: perfect Minimax ----
+  function getBestMove(b) {
+    let bestScore = -Infinity;
+    let bestMove = null;
+
+    for (let i = 0; i < 9; i++) {
+      if (b[i] === null) {
+        b[i] = AI;
+        const score = minimax(b, 0, false);
+        b[i] = null;
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = i;
+        }
+      }
+    }
+    return bestMove;
+  }
+
+  function minimax(b, depth, isMaximizing) {
+    const result = checkWinner(b);
+    if (result) {
+      if (result.winner === AI) return 10 - depth;
+      if (result.winner === HUMAN) return depth - 10;
+      return 0; // draw
+    }
+
+    if (isMaximizing) {
+      let best = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (b[i] === null) {
+          b[i] = AI;
+          best = Math.max(best, minimax(b, depth + 1, false));
+          b[i] = null;
+        }
+      }
+      return best;
+    } else {
+      let best = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (b[i] === null) {
+          b[i] = HUMAN;
+          best = Math.min(best, minimax(b, depth + 1, true));
+          b[i] = null;
+        }
+      }
+      return best;
+    }
+  }
+
+  // ---- End of game ----
+  function endGame(result) {
+    gameOver = true;
+    newGameBtn.hidden = false;
+    render();
+
+    if (result.winner === 'draw') {
+      setStatus("It's a draw!");
+    } else if (result.winner === HUMAN) {
+      setStatus('You won! 🎉');
+      highlightWin(result.line);
+    } else {
+      setStatus('The AI won!');
+      highlightWin(result.line);
+    }
+  }
+
+  // ---- Start a round from the setup screen ----
+  function startRound() {
+    roundId++; // invalidates any AI move still pending from the previous round
+    board = Array(9).fill(null);
+    gameOver = false;
+    boardLocked = false;
+
+    difficulty = difficultyEl.value;
+    gameInfoEl.textContent = `Difficulty: ${difficultyEl.options[difficultyEl.selectedIndex].text}`;
+
+    setupScreenEl.hidden = true;
+    gameScreenEl.hidden = false;
+    newGameBtn.hidden = true;
+    render();
+
+    const first = firstPlayerEl.value;
+    const aiStarts = first === 'ai' || (first === 'random' && Math.random() < 0.5);
+    if (aiStarts) {
+      boardLocked = true;
+      setStatus('AI thinking...');
+      render();
+      const thisRound = roundId;
+      setTimeout(() => {
+        if (roundId !== thisRound) return; // a new round started, ignore this stale move
+        aiTurn();
+      }, 300);
+    } else {
+      setStatus("Player's turn (X)");
+    }
+  }
+
+  // ---- Back to the setup screen ----
+  function showSetup() {
+    roundId++; // invalidates any AI timer that may still be pending
+    gameScreenEl.hidden = true;
+    setupScreenEl.hidden = false;
+    startBtn.focus();
+  }
+
+  startBtn.addEventListener('click', startRound);
+  newGameBtn.addEventListener('click', showSetup);
+
+  // ---- Initialization ----
+  buildBoard();
+</script>
+
+</body>
+</html>
