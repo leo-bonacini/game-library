@@ -194,7 +194,7 @@
 </div>
 
 <script>
-  // ---- Game state ----
+  // Game state
   const HUMAN = 'X';
   const BOT = 'O';
 
@@ -222,7 +222,7 @@
     [0, 4, 8], [2, 4, 6]             // diagonals
   ];
 
-  // ---- Build the board on screen ----
+  // Build the board on screen
   function buildBoard() {
     boardEl.innerHTML = '';
     for (let i = 0; i < 9; i++) {
@@ -251,7 +251,7 @@
     });
   }
 
-  // ---- Win / draw logic ----
+  // Win / draw logic
   function checkWinner(b) {
     for (const line of WIN_LINES) {
       const [a, c, d] = line;
@@ -275,7 +275,7 @@
     statusEl.textContent = text;
   }
 
-  // ---- Human move ----
+  // Human move
   function onCellClick(e) {
     const index = Number(e.currentTarget.dataset.index);
     if (gameOver || boardLocked || board[index]) return;
@@ -307,7 +307,7 @@
     setTimeout(() => cells[index].classList.remove('pop'), 180);
   }
 
-  // ---- Bot turn ----
+  // Bot turn
   function botTurn() {
     if (gameOver) return;
 
@@ -336,7 +336,7 @@
     setStatus("Player's turn (X)");
   }
 
-  // ---- Easy bot: random valid move ----
+  // Easy bot: random valid move
   function getRandomMove(b) {
     const available = b
       .map((v, i) => (v === null ? i : null))
@@ -344,7 +344,7 @@
     return available[Math.floor(Math.random() * available.length)];
   }
 
-  // ---- Medium bot: wins if possible, blocks if necessary, otherwise random ----
+  // Medium bot: wins if possible, blocks if necessary, otherwise random
   function getMediumMove(b) {
     // 1. Try to win
     const winMove = findWinningMove(b, BOT);
@@ -370,7 +370,7 @@
     return null;
   }
 
-  // ---- Hard bot: perfect Minimax ----
+  // Hard bot: perfect Minimax
   function getBestMove(b) {
     let bestScore = -Infinity;
     let bestMove = null;
@@ -420,7 +420,7 @@
     }
   }
 
-  // ---- End of game ----
+  // End of game
   function endGame(result) {
     gameOver = true;
     newGameBtn.hidden = false;
@@ -437,7 +437,7 @@
     }
   }
 
-  // ---- Start a round from the setup screen ----
+  // Start a round from the setup screen
   function startRound() {
     roundId++; // invalidates any bot move still pending from the previous round
     board = Array(9).fill(null);
@@ -468,7 +468,7 @@
     }
   }
 
-  // ---- Back to the setup screen ----
+  // Back to the setup screen
   function showSetup() {
     roundId++; // invalidates any bot timer that may still be pending
     gameScreenEl.hidden = true;
@@ -479,7 +479,7 @@
   startBtn.addEventListener('click', startRound);
   newGameBtn.addEventListener('click', showSetup);
 
-  // ---- Initialization ----
+  // Initialization
   buildBoard();
 </script>
 
