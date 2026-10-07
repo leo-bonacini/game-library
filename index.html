@@ -125,7 +125,7 @@
     width: 100%;
   }
 
-  /* ---------- Ship placement panel (left sidebar) ---------- */
+  /* Ship placement panel (left sidebar) */
   #placement-panel {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -196,7 +196,7 @@
     width: 100%;
   }
 
-  /* ---------- Fleet panels (sunk vs. remaining), beside the boards ---------- */
+  /* Fleet panels (sunk vs. remaining), beside the boards */
   .fleet-column {
     display: none; /* shown only during battle */
     background: var(--panel);
@@ -250,7 +250,7 @@
     display: block;
   }
 
-  /* ---------- Shared SVG ship artwork ---------- */
+  /* Shared SVG ship artwork */
   .ship-hull {
     fill: url(#hullGradient);
   }
@@ -529,13 +529,13 @@
 (() => {
   'use strict';
 
-  // ---------- General settings ----------
+  // General settings
   const BOARD_SIZE = 10;
   const SHIP_SIZES = [5, 4, 3, 3, 2]; // 1x5, 1x4, 2x3, 1x2
   const SHIP_NAMES = { 5: 'Aircraft Carrier', 4: 'Battleship', 3: 'Cruiser', 2: 'Submarine' };
   const BOT_MOVE_DELAY = 300; // ms
 
-  // ---------- Game state ----------
+  // Game state
   let playerGrid, botGrid;      // logical cell matrices
   let playerShips, botShips;    // ship lists { cells: [...], hits: 0, size, sunk }
   let gamePhase = 'placement';  // 'placement' | 'battle' | 'over'
@@ -560,7 +560,7 @@
     triedCells: new Set() // cells already attacked by the bot (avoids repeats)
   };
 
-  // ---------- DOM references ----------
+  // DOM references
   const playerBoardEl = document.getElementById('player-board');
   const botBoardEl = document.getElementById('bot-board');
   const botBoardWrapperEl = document.getElementById('bot-board-wrapper');
@@ -582,7 +582,7 @@
   const playerFleetListEl = document.getElementById('player-fleet-list');
   const enemyFleetListEl = document.getElementById('enemy-fleet-list');
 
-  // ---------- Utilities ----------
+  // Utilities
   function createEmptyGrid() {
     return Array.from({ length: BOARD_SIZE }, () =>
       Array.from({ length: BOARD_SIZE }, () => ({
@@ -608,7 +608,7 @@
     ].filter(p => inBounds(p.r, p.c));
   }
 
-  // ---------- Automatic ship placement ----------
+  // Automatic ship placement
   function placeShipsRandomly(grid, sizes = SHIP_SIZES) {
     // Attempt cap per ship: if a layout corners a ship, clear the board
     // and start over instead of getting stuck in a loop.
@@ -679,7 +679,7 @@
     return cells;
   }
 
-  // ---------- SVG ship artwork ----------
+  // SVG ship artwork
   // Each ship type has its own drawing (top-down view), always defined
   // horizontally: x axis = length (0..length), y axis = beam (0..1).
   // The bow sits at x=length and the stern at x=0.
@@ -772,7 +772,7 @@
     });
   }
 
-  // ---------- Board rendering ----------
+  // Board rendering
   // Accessible cell name: coordinate in the A1..J10 format + current state
   function cellAriaLabel(r, c, cellData, revealShips) {
     const coord = `${String.fromCharCode(65 + r)}${c + 1}`;
@@ -843,7 +843,7 @@
     ship.cells.forEach(({ r, c }) => updateCellVisual(boardEl, r, c, grid, opts));
   }
 
-  // ---------- Fleet panel: sunk vs. remaining ships ----------
+  // Fleet panel: sunk vs. remaining ships
   // Hit progress (red blocks) stays hidden until the ship is fully sunk,
   // so it never gives away which ship was hit. The rule applies equally
   // to both sides (your fleet and the enemy fleet).
@@ -876,9 +876,7 @@
     renderFleetList(enemyFleetListEl, botShips);
   }
 
-  // ======================================================================
-  // PLACEMENT PHASE
-  // ======================================================================
+  // Placement phase
 
   function enterPlacementPhase() {
     gamePhase = 'placement';
@@ -1086,9 +1084,7 @@
     if (firstCell) firstCell.focus({ preventScroll: true });
   }
 
-  // ======================================================================
-  // BATTLE PHASE
-  // ======================================================================
+  // Battle phase
 
   function attackCell(grid, ships, r, c) {
     const cellData = grid[r][c];
@@ -1307,7 +1303,7 @@
     return { r, c };
   }
 
-  // ---------- Game flow control ----------
+  // Game flow control
   function setStatus(message) {
     statusMessageEl.textContent = message;
   }
@@ -1337,7 +1333,7 @@
     }
   }
 
-  // ---------- Initialization / restart ----------
+  // Initialization / restart
   function startNewGame() {
     difficulty = difficultySelect.value;
     gameOverBannerEl.textContent = '';
@@ -1345,7 +1341,7 @@
     enterPlacementPhase();
   }
 
-  // ---------- Listeners ----------
+  // Listeners
   botBoardEl.addEventListener('click', handlePlayerAttack);
 
   playerBoardEl.addEventListener('mouseover', handlePlacementHover);
@@ -1403,7 +1399,7 @@
     }
   });
 
-  // ---------- Start ----------
+  // Start
   startNewGame();
 })();
 </script>
