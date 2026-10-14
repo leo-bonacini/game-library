@@ -183,7 +183,7 @@
   };
 
   const settings = {
-    darkMode: true, animations: true, sound: false, highlightConflicts: true,
+    animations: true, sound: false, highlightConflicts: true,
     autoSave: true, showTimer: true, highContrast: false
   };
 
@@ -504,18 +504,15 @@
       Settings.applyToDOM();
     },
 
-    // Pushes the settings object's values onto the DOM (theme, icons, checkboxes, visibility).
+    // Pushes the settings object's values onto the DOM (icons, checkboxes, visibility).
     applyToDOM() {
-      document.documentElement.setAttribute('data-theme', settings.darkMode ? 'dark' : 'light');
       document.body.classList.toggle('no-animations', !settings.animations);
       document.body.classList.toggle('high-contrast', settings.highContrast);
 
-      document.getElementById('btn-theme').textContent = settings.darkMode ? '🌙' : '☀️';
       document.getElementById('btn-sound').textContent = settings.sound ? '🔊' : '🔇';
       document.getElementById('btn-contrast').classList.toggle('active', settings.highContrast);
       document.getElementById('timer-display').style.visibility = settings.showTimer ? 'visible' : 'hidden';
 
-      document.getElementById('setting-dark-mode').checked = settings.darkMode;
       document.getElementById('setting-animations').checked = settings.animations;
       document.getElementById('setting-sound').checked = settings.sound;
       document.getElementById('setting-highlight-conflicts').checked = settings.highlightConflicts;
@@ -967,11 +964,6 @@
       });
     });
 
-    document.getElementById('btn-theme').addEventListener('click', () => {
-      settings.darkMode = !settings.darkMode;
-      Settings.applyToDOM();
-      Settings.save();
-    });
     document.getElementById('btn-sound').addEventListener('click', () => {
       settings.sound = !settings.sound;
       Settings.applyToDOM();
@@ -1006,7 +998,7 @@
     });
 
     const settingMap = {
-      'setting-dark-mode': 'darkMode', 'setting-animations': 'animations', 'setting-sound': 'sound',
+      'setting-animations': 'animations', 'setting-sound': 'sound',
       'setting-highlight-conflicts': 'highlightConflicts', 'setting-auto-save': 'autoSave',
       'setting-show-timer': 'showTimer', 'setting-high-contrast': 'highContrast'
     };

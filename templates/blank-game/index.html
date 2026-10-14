@@ -4,28 +4,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>__TITLE__</title>
+  <!-- Shared library look: theme tokens (--gl-*), top bar, light/dark toggle -->
+  <link rel="stylesheet" href="../../shared/theme.css">
+  <script src="../../games.js"></script>
+  <script src="../../shared/layout.js" data-game="__SLUG__"></script>
   <style>
-    :root { --bg: #f6f7fb; --fg: #1d2030; --accent: __COLOR__; }
-    @media (prefers-color-scheme: dark) { :root { --bg: #14161f; --fg: #e8eaf2; } }
     * { box-sizing: border-box; }
-    body {
-      margin: 0; min-height: 100vh; display: grid; place-items: center;
-      font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg);
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    .game {
+      margin: auto;
+      width: min(480px, calc(100% - 32px));
+      padding: 28px;
+      text-align: center;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius);
+      box-shadow: var(--gl-shadow);
     }
-    .back { position: fixed; top: 16px; left: 16px; color: inherit; opacity: .7; text-decoration: none; }
-    .back:hover { opacity: 1; }
-    button {
-      font: inherit; padding: .6em 1.2em; border: 0; border-radius: 8px;
-      background: var(--accent); color: #fff; cursor: pointer;
+    .game p { color: var(--gl-muted); }
+    .btn {
+      font: inherit; font-weight: 600; padding: 10px 18px; border: 0; cursor: pointer;
+      border-radius: var(--gl-radius-sm); background: var(--gl-accent); color: var(--gl-accent-fg);
     }
+    .btn:hover { background: var(--gl-accent-hover); }
   </style>
 </head>
 <body>
-  <a class="back" href="../../index.html">← Library</a>
-  <main>
-    <h1>__ICON__ __TITLE__</h1>
+  <!-- Buttons marked data-gl-action are moved into the top bar, e.g.:
+  <button id="sound-btn" title="Sound" data-gl-action>🔊</button> -->
+  <main class="game">
     <p>__DESCRIPTION__</p>
-    <button id="start">Start</button>
+    <button class="btn" id="start">Start</button>
   </main>
   <script>
     document.getElementById("start").addEventListener("click", () => {

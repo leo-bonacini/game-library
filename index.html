@@ -5,27 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Game Library</title>
   <meta name="description" content="A collection of dependency-free browser games by Leonardo Bonacini.">
+  <link rel="stylesheet" href="shared/theme.css">
+  <script src="games.js"></script>
+  <script src="shared/layout.js" data-library="index.html"></script>
   <style>
-    :root {
-      --bg: #f4f5fa; --surface: #ffffff; --fg: #1b1e2c; --muted: #5d6275;
-      --border: #e1e4ee; --chip: #eceef6; --shadow: 0 1px 2px rgba(20,24,40,.06), 0 8px 24px rgba(20,24,40,.06);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) {
-        --bg: #11131b; --surface: #1a1d29; --fg: #e9ebf3; --muted: #9aa0b4;
-        --border: #2a2e3e; --chip: #252939; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
-      }
-    }
-    :root[data-theme="dark"] {
-      --bg: #11131b; --surface: #1a1d29; --fg: #e9ebf3; --muted: #9aa0b4;
-      --border: #2a2e3e; --chip: #252939; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
-    }
     * { box-sizing: border-box; }
-    body {
-      margin: 0; background: var(--bg); color: var(--fg);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.5;
-    }
-    .wrap { max-width: 1080px; margin: 0 auto; padding: 48px 16px 64px; }
+    :root { --bg: var(--gl-bg); --surface: var(--gl-surface); --fg: var(--gl-fg); --muted: var(--gl-muted);
+      --border: var(--gl-border); --chip: var(--gl-surface-2); --shadow: var(--gl-shadow); }
+    body { line-height: 1.5; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 16px 64px; }
     header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
     h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); letter-spacing: -.02em; }
     header p { margin: 4px 0 0; color: var(--muted); }
@@ -39,7 +27,6 @@
       border: 1px solid var(--border); background: var(--chip); color: var(--fg);
     }
     .chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-    .theme-btn { font: inherit; background: none; border: 1px solid var(--border); color: var(--fg); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
     .card {
       display: flex; flex-direction: column; text-decoration: none; color: inherit;
@@ -67,10 +54,9 @@
   <div class="wrap">
     <header>
       <div>
-        <h1>🕹️ Game Library</h1>
+        <h1>Game Library</h1>
         <p id="count">Browser games with no build step and no dependencies.</p>
       </div>
-      <button class="theme-btn" id="theme" type="button" aria-label="Toggle theme">◐ Theme</button>
     </header>
 
     <div class="controls">
@@ -86,7 +72,6 @@
     </footer>
   </div>
 
-  <script src="games.js"></script>
   <script>
     const games = window.GAMES || [];
     const grid = document.getElementById("grid");
@@ -132,16 +117,6 @@
     }
     render();
 
-    const themeBtn = document.getElementById("theme");
-    try { const saved = localStorage.getItem("library-theme"); if (saved) document.documentElement.dataset.theme = saved; } catch {}
-    themeBtn.addEventListener("click", () => {
-      const dark = document.documentElement.dataset.theme
-        ? document.documentElement.dataset.theme === "dark"
-        : matchMedia("(prefers-color-scheme: dark)").matches;
-      const next = dark ? "light" : "dark";
-      document.documentElement.dataset.theme = next;
-      try { localStorage.setItem("library-theme", next); } catch {}
-    });
   </script>
 </body>
 </html>

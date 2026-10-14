@@ -15,7 +15,6 @@ const DEFAULT_STATS = {
 };
 
 const DEFAULT_SETTINGS = {
-  theme: 'dark',
   soundEnabled: true,
   reducedMotion: false,
   highContrast: false,

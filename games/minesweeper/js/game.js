@@ -41,7 +41,6 @@ class Game {
       onHint: () => this.handleHint(),
       onMuteToggle: () => this.handleMuteToggle(),
       onCustomApply: (config) => this.handleCustomApply(config),
-      onThemeChange: (theme) => this.handleThemeChange(theme),
       onSoundToggle: (enabled) => this.handleSoundToggle(enabled),
       onReducedMotionToggle: (enabled) => this.handleReducedMotionToggle(enabled),
       onHighContrastToggle: (enabled) => this.handleHighContrastToggle(enabled),
@@ -52,7 +51,6 @@ class Game {
   }
 
   applySettingsToUI() {
-    this.ui.setTheme(this.settings.theme);
     this.ui.setReducedMotion(this.settings.reducedMotion);
     this.ui.setHighContrast(this.settings.highContrast);
     this.ui.setAnimationSpeed(this.settings.animationSpeed);
@@ -254,12 +252,6 @@ class Game {
     this.sound.setEnabled(this.settings.soundEnabled);
     this.ui.setMuted(!this.settings.soundEnabled);
     document.getElementById('setting-sound').checked = this.settings.soundEnabled;
-    this.persistSettings();
-  }
-
-  handleThemeChange(theme) {
-    this.settings.theme = theme;
-    this.ui.setTheme(theme);
     this.persistSettings();
   }
 

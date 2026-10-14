@@ -32,6 +32,7 @@ js_escape() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 cp -r "$root/templates/blank-game" "$dest"
 for f in "$dest"/*; do
   sed -i \
+    -e "s|__SLUG__|$slug|g" \
     -e "s|__TITLE__|$(sed_escape "$title")|g" \
     -e "s|__DESCRIPTION__|$(sed_escape "$description")|g" \
     -e "s|__ICON__|$(sed_escape "$icon")|g" \

@@ -4,39 +4,43 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Battleship</title>
+<link rel="stylesheet" href="../../shared/theme.css">
+<script src="../../games.js"></script>
+<script src="../../shared/layout.js" data-game="battleship"></script>
 <style>
   :root {
     --cell-size: 34px;
-    --bg-dark: #0b1220;
-    --panel: #121b2e;
-    --border: #25324a;
-    --water: #1565c0;
-    --water-hover: #1e88e5;
+    --panel: var(--gl-surface);
+    --border: var(--gl-border);
+    --grid-bg: #b8c6dc;
+    --water: #1e7fd8;
+    --water-hover: #3a96ea;
     --hit: #e53935;
-    --miss: #37474f;
-    --accent: #4fc3f7;
+    --miss: #607d8b;
+    --accent: var(--gl-accent);
     --valid: #43a047;
     --invalid: #d32f2f;
+  }
+
+  :root[data-theme="dark"] {
+    --grid-bg: #25324a;
+    --water: #1565c0;
+    --water-hover: #1e88e5;
+    --miss: #37474f;
   }
 
   * { box-sizing: border-box; }
 
   body {
-    margin: 0;
     min-height: 100vh;
-    background: radial-gradient(circle at top, #16223b, var(--bg-dark));
-    color: #e8eef7;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px;
+    padding: 0 20px 20px;
   }
 
-  h1 {
-    margin: 10px 0 5px;
-    letter-spacing: 2px;
-    text-shadow: 0 0 12px rgba(79, 195, 247, 0.6);
+  .gl-bar {
+    margin: 0 -20px 20px;
   }
 
   /* Status bar at the top: message + restart button */
@@ -52,7 +56,7 @@
     text-align: center;
     min-width: 320px;
     max-width: 90vw;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    box-shadow: var(--gl-shadow-sm);
   }
 
   #status-message {
@@ -83,7 +87,7 @@
 
   select, button {
     background: var(--panel);
-    color: #e8eef7;
+    color: var(--gl-fg);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 8px 14px;
@@ -93,7 +97,7 @@
   }
 
   select:hover, button:hover:not(:disabled) {
-    background: #1a2740;
+    background: var(--gl-surface-2);
     transform: translateY(-1px);
   }
 
@@ -107,12 +111,14 @@
   }
 
   button.primary {
-    background: #15532f;
-    border-color: #2e8b57;
+    background: var(--gl-accent);
+    border-color: var(--gl-accent);
+    color: var(--gl-accent-fg);
+    font-weight: 600;
   }
 
   button.primary:hover:not(:disabled) {
-    background: #1b6b3c;
+    background: var(--gl-accent-hover);
   }
 
   /* Wraps the placement panel and the boards side by side */
@@ -134,7 +140,7 @@
     text-align: left;
     width: 250px;
     flex-shrink: 0;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    box-shadow: var(--gl-shadow-sm);
   }
 
   #placement-panel h2 {
@@ -206,7 +212,7 @@
     min-width: 165px;
     flex-shrink: 0;
     margin-top: 38px; /* lines up with the top of the board grids */
-    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    box-shadow: var(--gl-shadow-sm);
   }
 
   .fleet-column h3 {
@@ -321,10 +327,10 @@
     grid-template-columns: repeat(10, var(--cell-size));
     grid-template-rows: repeat(10, var(--cell-size));
     gap: 3px;
-    background: var(--border);
+    background: var(--grid-bg);
     padding: 6px;
     border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    box-shadow: var(--gl-shadow);
   }
 
   .cell {
@@ -343,7 +349,7 @@
   }
 
   .cell:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--gl-fg);
     outline-offset: -2px;
   }
 
@@ -429,13 +435,13 @@
     min-height: 1.6em;
   }
 
-  #game-over-banner.win { color: #69f0ae; text-shadow: 0 0 10px rgba(105,240,174,0.6); }
-  #game-over-banner.lose { color: #ff5252; text-shadow: 0 0 10px rgba(255,82,82,0.6); }
+  #game-over-banner.win { color: var(--gl-success); }
+  #game-over-banner.lose { color: var(--gl-danger); }
 
   footer {
     margin-top: 30px;
     font-size: 0.8em;
-    color: #5a6b8a;
+    color: var(--gl-muted);
   }
 
   /* Smaller cells on narrow screens so the 10x10 board fits */
@@ -467,8 +473,6 @@
     </linearGradient>
   </defs>
 </svg>
-
-<h1>⚓ Battleship</h1>
 
 <div id="status-panel">
   <div id="status-message" role="status" aria-live="polite">Preparing the game...</div>

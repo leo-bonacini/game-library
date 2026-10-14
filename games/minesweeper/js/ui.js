@@ -34,7 +34,6 @@ export class UI {
     this.muteButton = document.getElementById('mute-button');
     this.customApplyButton = document.getElementById('custom-apply-button');
     this.customError = document.getElementById('custom-error');
-    this.themeGrid = document.getElementById('theme-grid');
     this.statsStrip = {
       played: document.getElementById('stat-played'),
       winpct: document.getElementById('stat-winpct'),
@@ -95,12 +94,6 @@ export class UI {
       }
       this.customError.textContent = '';
       this.callbacks.onCustomApply({ rows, cols, mines });
-    });
-
-    this.themeGrid.addEventListener('click', (e) => {
-      const btn = e.target.closest('.theme-swatch');
-      if (!btn) return;
-      this.callbacks.onThemeChange(btn.dataset.theme);
     });
 
     document.getElementById('setting-sound').addEventListener('change', (e) => {
@@ -349,13 +342,6 @@ export class UI {
 
   closeSettings() {
     this.settingsPanel.classList.add('hidden');
-  }
-
-  setTheme(theme) {
-    document.body.dataset.theme = theme;
-    this.themeGrid.querySelectorAll('.theme-swatch').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.theme === theme);
-    });
   }
 
   setDifficultySelectValue(value) {

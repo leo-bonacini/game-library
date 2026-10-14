@@ -4,19 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Ludo</title>
+<link rel="stylesheet" href="../../shared/theme.css">
+<script src="../../games.js"></script>
+<script src="../../shared/layout.js" data-game="ludo"></script>
 <style>
   :root{
-    --bg:#eef1f8;
-    --panel:#ffffff;
-    --text:#1b1e27;
-    --muted:#6b7280;
-    --board-bg:#dfe5f0;
-    --cell-bg:#ffffff;
-    --cell-border:#ccd5e3;
+    --bg:var(--gl-bg);
+    --panel:var(--gl-surface);
+    --text:var(--gl-fg);
+    --muted:var(--gl-muted);
+    --board-bg:var(--gl-surface-2);
+    --cell-bg:var(--gl-surface);
+    --cell-border:var(--gl-surface-3);
     --safe-bg:#fff6d8;
-    --shadow:0 12px 34px rgba(30,40,80,.14);
-    --shadow-sm:0 4px 12px rgba(30,40,80,.10);
-    --radius:16px;
+    --shadow:var(--gl-shadow);
+    --shadow-sm:var(--gl-shadow-sm);
+    --radius:var(--gl-radius);
     --red:#e6483f;
     --red-d:#b8342c;
     --green:#2fb861;
@@ -25,27 +28,15 @@
     --yellow-d:#c99a0d;
     --blue:#3186f2;
     --blue-d:#1f63c4;
-    --accent:#6c5ce7;
+    --accent:var(--gl-accent);
   }
   html[data-theme="dark"]{
-    --bg:#12141c;
-    --panel:#1b1f2b;
-    --text:#eceff5;
-    --muted:#94a0b6;
-    --board-bg:#0f1219;
-    --cell-bg:#1c2130;
-    --cell-border:#2c3346;
     --safe-bg:#3a3316;
-    --shadow:0 12px 34px rgba(0,0,0,.55);
-    --shadow-sm:0 4px 12px rgba(0,0,0,.4);
   }
   *{box-sizing:border-box;}
   html,body{height:100%;}
   body{
     margin:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-tap-highlight-color:transparent;
     transition:background .3s ease,color .3s ease;
   }
@@ -58,22 +49,6 @@
     gap:14px;
     min-height:100%;
   }
-  header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    flex-wrap:wrap;
-  }
-  header h1{
-    margin:0;
-    font-size:1.5rem;
-    letter-spacing:.3px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-  header h1 .dot{width:.6em;height:.6em;border-radius:50%;background:conic-gradient(var(--red),var(--yellow),var(--green),var(--blue),var(--red));display:inline-block;}
   .icon-btn{
     border:none;
     background:var(--panel);
@@ -88,7 +63,6 @@
   }
   .icon-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
   .icon-btn:active{transform:translateY(0);}
-  .top-controls{display:flex;gap:8px;}
 
   main{
     display:grid;
@@ -300,14 +274,14 @@
     padding:12px 16px;
     font-size:1rem;
     font-weight:600;
-    color:#fff;
-    background:linear-gradient(135deg,var(--accent),#8f7bff);
+    color:var(--gl-accent-fg);
+    background:var(--accent);
     border-radius:12px;
     cursor:pointer;
-    box-shadow:0 8px 18px rgba(108,92,231,.35);
+    box-shadow:var(--shadow-sm);
     transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;
   }
-  #rollBtn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 22px rgba(108,92,231,.45);}
+  #rollBtn:hover:not(:disabled){transform:translateY(-2px);background:var(--gl-accent-hover);box-shadow:var(--shadow);}
   #rollBtn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;}
   #diceHint{font-size:.72rem;color:var(--muted);}
 
@@ -338,7 +312,7 @@
   .p-stats b{color:var(--text);}
   .rank-badge{
     font-size:.68rem;font-weight:700;
-    background:var(--accent);color:#fff;
+    background:var(--accent);color:var(--gl-accent-fg);
     border-radius:20px;padding:2px 7px;
   }
 
@@ -369,7 +343,7 @@
 
   #winnerOverlay, #startOverlay{
     position:fixed;inset:0;
-    background:rgba(10,12,20,.55);
+    background:var(--gl-overlay);
     display:none;
     align-items:center;justify-content:center;
     z-index:50;
@@ -450,13 +424,7 @@
 </head>
 <body>
 <div id="app">
-  <header>
-    <h1><span class="dot"></span>Ludo</h1>
-    <div class="top-controls">
-      <button class="icon-btn" id="soundBtn" title="Toggle sound">🔊</button>
-      <button class="icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
-    </div>
-  </header>
+  <button class="icon-btn" id="soundBtn" title="Toggle sound" data-gl-action>🔊</button>
 
   <main>
     <div class="board-card">
@@ -1291,7 +1259,7 @@ document.addEventListener("keydown", (e)=>{
   }
 });
 
-/* Winner overlay / theme / sound toggles */
+/* Winner overlay / sound toggle */
 const winnerOverlay = document.getElementById("winnerOverlay");
 function showWinnerOverlay(){
   const ranked = [...state.players].sort((a,b)=>a.finishRank-b.finishRank);
@@ -1312,16 +1280,6 @@ soundBtn.addEventListener("click", ()=>{
   Sound.setOn(!Sound.isOn());
   soundBtn.textContent = Sound.isOn() ? "🔊" : "🔈";
 });
-
-const themeBtn = document.getElementById("themeBtn");
-function setTheme(dark){
-  document.documentElement.setAttribute("data-theme", dark ? "dark":"light");
-  themeBtn.textContent = dark ? "☀️" : "🌙";
-}
-themeBtn.addEventListener("click", ()=>{
-  setTheme(document.documentElement.getAttribute("data-theme")!=="dark");
-});
-setTheme(window.matchMedia && window.matchMedia("prefers-color-scheme: dark").matches);
 
 /* START SCREEN (color selection) */
 const startOverlay = document.getElementById("startOverlay");

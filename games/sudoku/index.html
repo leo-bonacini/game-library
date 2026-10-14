@@ -1,24 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Sudoku</title>
+<link rel="stylesheet" href="../../shared/theme.css">
 <link rel="stylesheet" href="style.css">
+<script src="../../games.js"></script>
+<script src="../../shared/layout.js" data-game="sudoku"></script>
 </head>
 <body>
 <div id="app">
 
-  <!-- Top bar -->
-  <header class="topbar">
-    <button id="btn-menu" class="icon-btn" aria-label="Open menu" title="Menu">☰</button>
-    <h1 class="app-title">Sudoku</h1>
-    <div class="topbar-actions">
-      <button id="btn-contrast" class="icon-btn" aria-label="Toggle high contrast" title="High contrast">◐</button>
-      <button id="btn-sound" class="icon-btn" aria-label="Toggle sound" title="Sound">🔇</button>
-      <button id="btn-theme" class="icon-btn" aria-label="Toggle dark/light theme" title="Theme">🌙</button>
-    </div>
-  </header>
+  <!-- Game actions, moved into the shared library bar -->
+  <button id="btn-menu" class="icon-btn" aria-label="Open menu" title="Menu" data-gl-action>☰</button>
+  <button id="btn-contrast" class="icon-btn" aria-label="Toggle high contrast" title="High contrast" data-gl-action>◐</button>
+  <button id="btn-sound" class="icon-btn" aria-label="Toggle sound" title="Sound" data-gl-action>🔇</button>
 
   <!-- Main game layout -->
   <main class="game-layout">
@@ -113,10 +110,6 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" tabindex="-1">
       <h2 class="modal-title" id="settings-modal-title">Settings</h2>
 
-      <label class="setting-row">
-        <span>Dark mode</span>
-        <input type="checkbox" id="setting-dark-mode">
-      </label>
       <label class="setting-row">
         <span>Animations</span>
         <input type="checkbox" id="setting-animations" checked>

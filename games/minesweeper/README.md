@@ -9,11 +9,11 @@ A modern, dependency-free take on classic Minesweeper. Built with plain HTML5, C
 - Four difficulty presets (Easy 9×9, Medium 16×16, Hard 30×16, Expert 40×20) plus a validated Custom board
 - Guaranteed-safe first click, recursive flood-fill reveal, chord-reveal (double-click / middle-click / satisfied-flag click)
 - Mine counter, live timer, pause/resume, win/loss detection, restart
-- Six themes: Dark, Light, Windows 95, Cyberpunk, Forest, Ocean
+- Light and dark themes shared with the rest of the game library
 - Reveal, flag, explosion, victory, and hover animations; particle effects (explosion sparks, confetti, sparkles), board shake, screen flash
 - Synthesized sound effects via the Web Audio API (no binary audio assets to load), with a mute toggle
 - Full statistics tracked in `localStorage`: games played, win rate, streaks, best times per difficulty, average completion time, flags placed, cells revealed
-- Settings panel: theme, sound, reduced motion, high contrast, animation speed, cell size, custom board
+- Settings panel: sound, reduced motion, high contrast, animation speed, cell size, custom board
 - Accessibility: full keyboard play (arrow keys to move, Enter/Space to reveal, F to flag), ARIA grid labeling, visible focus states, `prefers-reduced-motion` support, high-contrast mode
 - Mobile support: tap to reveal, long-press to flag, a Flag Mode toggle for touch devices, responsive layout for portrait and landscape
 - Seeded board generation (`Board` accepts a seed) so runs can be reproduced deterministically
