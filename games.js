@@ -40,5 +40,13 @@ window.GAMES = [
     description: "Generated puzzles with unique solutions, notes, hints, undo/redo, and a daily challenge.",
     tags: ["puzzle", "solo"],
   },
+  {
+    slug: "snake",
+    title: "Snake",
+    icon: "🐍",
+    color: "#2fb861",
+    description: "Classic arcade snake: eat, grow, and don't hit yourself. Three speeds, solid or wrap-around edges.",
+    tags: ["arcade", "solo"],
+  },
   // @new-games
 ];

@@ -13,6 +13,7 @@ Open `index.html` in any modern browser to browse the library and pick a game. T
 | 🎲 Ludo | [`games/ludo`](games/ludo) | Race four tokens home against three bots |
 | 💣 Minesweeper | [`games/minesweeper`](games/minesweeper) | Classic Minesweeper with themes, stats and custom boards |
 | 🔢 Sudoku | [`games/sudoku`](games/sudoku) | Generated puzzles with notes, hints and a daily challenge |
+| 🐍 Snake | [`games/snake`](games/snake) | Arcade snake with three speeds and solid or wrap-around edges |
 
 Each game folder has its own README with rules and controls.
 
@@ -47,12 +48,12 @@ Every page (the library and each game) loads the same two files in `<head>`:
 ## Adding a new game
 
 ```bash
-scripts/new-game.sh snake "Snake" "Eat, grow, and don't bite your own tail." "🐍" "#06d6a0"
+scripts/new-game.sh breakout "Breakout" "Bounce the ball and clear every brick." "🧱" "#ef476f"
 ```
 
-This copies `templates/blank-game` into `games/snake/`, fills in the title, description, icon and color, and adds an entry to `games.js`. Then:
+This copies `templates/blank-game` into `games/breakout/`, fills in the title, description, icon and color, and adds an entry to `games.js`. Then:
 
-1. Build the game in `games/snake/index.html` (split into `css/` and `js/` files if it grows). The template already includes the shared layout.
+1. Build the game in `games/breakout/index.html` (split into `css/` and `js/` files if it grows). The template already includes the shared layout.
 2. Set its `tags` in `games.js` so it shows up under the right filters.
 3. Open the root `index.html` to see it in the library.
 
