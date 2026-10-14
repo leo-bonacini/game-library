@@ -40,6 +40,7 @@ Every page (the library and each game) loads the same two files in `<head>`:
 
 - `layout.js` adds the top bar: **← Library** on the left, the game's icon and title (taken from `games.js`) in the center, and the light/dark toggle on the right.
 - The theme is saved once (`localStorage` key `gl-theme`) and applies to the whole library. Without a saved choice it follows the system setting.
+- Start and selection screens that cover the bar (overlays, menus) include `<a class="gl-back-link" href="../../index.html">← Back to library</a>`.
 - Buttons marked with `data-gl-action` are moved into the bar next to the theme toggle, e.g. `<button id="sound-btn" data-gl-action>🔊</button>`.
 - Games use the `--gl-*` tokens (`--gl-bg`, `--gl-surface`, `--gl-surface-2`, `--gl-fg`, `--gl-muted`, `--gl-border`, `--gl-accent`, `--gl-success`, `--gl-danger`, `--gl-radius`, `--gl-shadow`, ...) instead of hardcoded colors, and switch game-specific colors with `:root[data-theme="dark"]`.
 

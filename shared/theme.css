@@ -111,6 +111,22 @@ body {
   outline: 2px solid var(--gl-accent); outline-offset: 2px;
 }
 
+/* "Back to library" link for a game's start/selection screen */
+.gl-back-link {
+  display: block;
+  width: fit-content;
+  margin: 14px auto 0;
+  padding: 6px 10px;
+  border-radius: var(--gl-radius-sm);
+  color: var(--gl-muted);
+  font-family: var(--gl-font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.gl-back-link:hover { color: var(--gl-fg); background: var(--gl-surface-2); }
+.gl-back-link:focus-visible { outline: 2px solid var(--gl-accent); outline-offset: 2px; }
+
 @media (max-width: 520px) {
   .gl-bar { padding: 0 12px; gap: 8px; grid-template-columns: auto minmax(0, 1fr) auto; }
   .gl-bar .gl-bar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
