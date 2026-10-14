@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Library</title>
+  <meta name="description" content="A collection of dependency-free browser games by Leonardo Bonacini.">
+  <style>
+    :root {
+      --bg: #f4f5fa; --surface: #ffffff; --fg: #1b1e2c; --muted: #5d6275;
+      --border: #e1e4ee; --chip: #eceef6; --shadow: 0 1px 2px rgba(20,24,40,.06), 0 8px 24px rgba(20,24,40,.06);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #11131b; --surface: #1a1d29; --fg: #e9ebf3; --muted: #9aa0b4;
+        --border: #2a2e3e; --chip: #252939; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #11131b; --surface: #1a1d29; --fg: #e9ebf3; --muted: #9aa0b4;
+      --border: #2a2e3e; --chip: #252939; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--fg);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.5;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 48px 16px 64px; }
+    header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+    h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); letter-spacing: -.02em; }
+    header p { margin: 4px 0 0; color: var(--muted); }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 24px; }
+    input[type="search"] {
+      flex: 1 1 220px; font: inherit; padding: 10px 14px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--surface); color: var(--fg);
+    }
+    .chip {
+      font: inherit; font-size: .875rem; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--chip); color: var(--fg);
+    }
+    .chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+    .theme-btn { font: inherit; background: none; border: 1px solid var(--border); color: var(--fg); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+    .card {
+      display: flex; flex-direction: column; text-decoration: none; color: inherit;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      overflow: hidden; box-shadow: var(--shadow); transition: transform .15s ease, border-color .15s ease;
+    }
+    .card:hover, .card:focus-visible { transform: translateY(-3px); border-color: var(--accent); outline: none; }
+    .art {
+      height: 120px; display: grid; place-items: center; font-size: 3.4rem;
+      background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #000));
+    }
+    .body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .body h2 { margin: 0; font-size: 1.15rem; }
+    .body p { margin: 0; color: var(--muted); font-size: .925rem; flex: 1; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { font-size: .75rem; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+    .play { font-weight: 600; color: var(--accent); font-size: .9rem; }
+    .empty { color: var(--muted); text-align: center; padding: 48px 0; }
+    footer { margin-top: 48px; color: var(--muted); font-size: .85rem; text-align: center; }
+    footer a { color: inherit; }
+    @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>🕹️ Game Library</h1>
+        <p id="count">Browser games with no build step and no dependencies.</p>
+      </div>
+      <button class="theme-btn" id="theme" type="button" aria-label="Toggle theme">◐ Theme</button>
+    </header>
+
+    <div class="controls">
+      <input type="search" id="search" placeholder="Search games…" aria-label="Search games">
+      <div id="filters" class="controls" style="margin:0" role="group" aria-label="Filter by tag"></div>
+    </div>
+
+    <main class="grid" id="grid"></main>
+    <p class="empty" id="empty" hidden>No games match your search.</p>
+
+    <footer>
+      Made by <a href="https://github.com/leo-bonacini" target="_blank" rel="noopener noreferrer">Leonardo Bonacini</a>
+    </footer>
+  </div>
+
+  <script src="games.js"></script>
+  <script>
+    const games = window.GAMES || [];
+    const grid = document.getElementById("grid");
+    const search = document.getElementById("search");
+    const filters = document.getElementById("filters");
+    let activeTag = "all";
+
+    const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+    document.getElementById("count").textContent =
+      `${games.length} browser games with no build step and no dependencies.`;
+
+    const tags = ["all", ...new Set(games.flatMap((g) => g.tags || []))];
+    filters.innerHTML = tags.map((t) =>
+      `<button class="chip" type="button" data-tag="${escapeHtml(t)}" aria-pressed="${t === activeTag}">${escapeHtml(t)}</button>`
+    ).join("");
+    filters.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-tag]");
+      if (!btn) return;
+      activeTag = btn.dataset.tag;
+      filters.querySelectorAll("[data-tag]").forEach((b) => b.setAttribute("aria-pressed", b === btn));
+      render();
+    });
+    search.addEventListener("input", render);
+
+    function render() {
+      const q = search.value.trim().toLowerCase();
+      const shown = games.filter((g) =>
+        (activeTag === "all" || (g.tags || []).includes(activeTag)) &&
+        (!q || `${g.title} ${g.description} ${(g.tags || []).join(" ")}`.toLowerCase().includes(q)));
+      grid.innerHTML = shown.map((g) => `
+        <a class="card" href="games/${encodeURIComponent(g.slug)}/index.html" style="--accent:${escapeHtml(g.color || "#888")}">
+          <div class="art" aria-hidden="true">${escapeHtml(g.icon || "🎮")}</div>
+          <div class="body">
+            <h2>${escapeHtml(g.title)}</h2>
+            <p>${escapeHtml(g.description || "")}</p>
+            <div class="tags">${(g.tags || []).map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
+            <span class="play">Play →</span>
+          </div>
+        </a>`).join("");
+      document.getElementById("empty").hidden = shown.length > 0;
+    }
+    render();
+
+    const themeBtn = document.getElementById("theme");
+    try { const saved = localStorage.getItem("library-theme"); if (saved) document.documentElement.dataset.theme = saved; } catch {}
+    themeBtn.addEventListener("click", () => {
+      const dark = document.documentElement.dataset.theme
+        ? document.documentElement.dataset.theme === "dark"
+        : matchMedia("(prefers-color-scheme: dark)").matches;
+      const next = dark ? "light" : "dark";
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem("library-theme", next); } catch {}
+    });
+  </script>
+</body>
+</html>

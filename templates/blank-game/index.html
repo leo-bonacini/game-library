@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>__TITLE__</title>
+  <style>
+    :root { --bg: #f6f7fb; --fg: #1d2030; --accent: __COLOR__; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #14161f; --fg: #e8eaf2; } }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg);
+    }
+    .back { position: fixed; top: 16px; left: 16px; color: inherit; opacity: .7; text-decoration: none; }
+    .back:hover { opacity: 1; }
+    button {
+      font: inherit; padding: .6em 1.2em; border: 0; border-radius: 8px;
+      background: var(--accent); color: #fff; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <a class="back" href="../../index.html">← Library</a>
+  <main>
+    <h1>__ICON__ __TITLE__</h1>
+    <p>__DESCRIPTION__</p>
+    <button id="start">Start</button>
+  </main>
+  <script>
+    document.getElementById("start").addEventListener("click", () => {
+      // Game logic goes here.
+    });
+  </script>
+</body>
+</html>
