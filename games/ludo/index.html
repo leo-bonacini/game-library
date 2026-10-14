@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Ludo</title>
+<style>
+  :root{
+    --bg:#eef1f8;
+    --panel:#ffffff;
+    --text:#1b1e27;
+    --muted:#6b7280;
+    --board-bg:#dfe5f0;
+    --cell-bg:#ffffff;
+    --cell-border:#ccd5e3;
+    --safe-bg:#fff6d8;
+    --shadow:0 12px 34px rgba(30,40,80,.14);
+    --shadow-sm:0 4px 12px rgba(30,40,80,.10);
+    --radius:16px;
+    --red:#e6483f;
+    --red-d:#b8342c;
+    --green:#2fb861;
+    --green-d:#1f8c47;
+    --yellow:#f4c11f;
+    --yellow-d:#c99a0d;
+    --blue:#3186f2;
+    --blue-d:#1f63c4;
+    --accent:#6c5ce7;
+  }
+  html[data-theme="dark"]{
+    --bg:#12141c;
+    --panel:#1b1f2b;
+    --text:#eceff5;
+    --muted:#94a0b6;
+    --board-bg:#0f1219;
+    --cell-bg:#1c2130;
+    --cell-border:#2c3346;
+    --safe-bg:#3a3316;
+    --shadow:0 12px 34px rgba(0,0,0,.55);
+    --shadow-sm:0 4px 12px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+    transition:background .3s ease,color .3s ease;
+  }
+  #app{
+    max-width:1280px;
+    margin:0 auto;
+    padding:14px 14px 32px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    min-height:100%;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  header h1{
+    margin:0;
+    font-size:1.5rem;
+    letter-spacing:.3px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  header h1 .dot{width:.6em;height:.6em;border-radius:50%;background:conic-gradient(var(--red),var(--yellow),var(--green),var(--blue),var(--red));display:inline-block;}
+  .icon-btn{
+    border:none;
+    background:var(--panel);
+    color:var(--text);
+    width:40px;height:40px;
+    border-radius:12px;
+    font-size:1.1rem;
+    cursor:pointer;
+    box-shadow:var(--shadow-sm);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .icon-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow);}
+  .icon-btn:active{transform:translateY(0);}
+  .top-controls{display:flex;gap:8px;}
+
+  main{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 340px;
+    gap:16px;
+    align-items:start;
+  }
+  @media (max-width:900px){
+    main{grid-template-columns:1fr;}
+  }
+
+  .board-card{
+    background:var(--panel);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:14px;
+    display:flex;
+    justify-content:center;
+  }
+  .board-wrap{
+    width:100%;
+    max-width:640px;
+    aspect-ratio:1/1;
+    position:relative;
+  }
+  #board{
+    position:absolute;
+    inset:0;
+    display:grid;
+    grid-template-columns:repeat(15,1fr);
+    grid-template-rows:repeat(15,1fr);
+    background:var(--board-bg);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:inset 0 0 0 2px var(--cell-border);
+  }
+  .yard{
+    border-radius:14px;
+    margin:8%;
+    position:relative;
+    box-shadow:inset 0 0 0 3px rgba(255,255,255,.25);
+  }
+  .yard::before{
+    content:"";
+    position:absolute;
+    inset:12%;
+    border-radius:12px;
+    background:var(--panel);
+  }
+  .yard-red{background:linear-gradient(145deg,var(--red),var(--red-d));}
+  .yard-green{background:linear-gradient(145deg,var(--green),var(--green-d));}
+  .yard-yellow{background:linear-gradient(145deg,var(--yellow),var(--yellow-d));}
+  .yard-blue{background:linear-gradient(145deg,var(--blue),var(--blue-d));}
+  .yard-slot{
+    position:absolute;
+    width:22%;
+    height:22%;
+    border-radius:50%;
+    background:rgba(0,0,0,.06);
+    transform:translate(-50%,-50%);
+  }
+  html[data-theme="dark"] .yard-slot{background:rgba(0,0,0,.35);}
+
+  .cell{
+    background:var(--cell-bg);
+    box-shadow:inset 0 0 0 1px var(--cell-border);
+    position:relative;
+  }
+  .cell.safe{background:var(--safe-bg);}
+  .cell.safe::after{
+    content:"★";
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:60%;
+    color:var(--muted);
+    opacity:.7;
+  }
+  .cell.home-red{background:color-mix(in srgb, var(--red) 22%, var(--cell-bg));}
+  .cell.home-green{background:color-mix(in srgb, var(--green) 22%, var(--cell-bg));}
+  .cell.home-yellow{background:color-mix(in srgb, var(--yellow) 26%, var(--cell-bg));}
+  .cell.home-blue{background:color-mix(in srgb, var(--blue) 22%, var(--cell-bg));}
+  .cell.start-red{background:var(--red);}
+  .cell.start-green{background:var(--green);}
+  .cell.start-yellow{background:var(--yellow);}
+  .cell.start-blue{background:var(--blue);}
+  .cell.start-red.safe::after,.cell.start-green.safe::after,.cell.start-yellow.safe::after,.cell.start-blue.safe::after{color:rgba(255,255,255,.85);}
+
+  .center-box{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+  }
+  .center-tri{position:absolute;inset:0;}
+  .tri-west{background:var(--red);clip-path:polygon(0 0,0 100%,50% 50%);}
+  .tri-north{background:var(--green);clip-path:polygon(0 0,100% 0,50% 50%);}
+  .tri-east{background:var(--yellow);clip-path:polygon(100% 0,100% 100%,50% 50%);}
+  .tri-south{background:var(--blue);clip-path:polygon(0 100%,100% 100%,50% 50%);}
+  .center-box .star{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-size:14px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4);
+    z-index:2;
+  }
+
+  .token{
+    position:absolute;
+    width:6.2%;
+    height:6.2%;
+    border-radius:50%;
+    transform:translate(-50%,-50%);
+    top:0;left:0;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 5px rgba(0,0,0,.35), inset 0 -2px 3px rgba(0,0,0,.25), inset 0 2px 3px rgba(255,255,255,.5);
+    cursor:default;
+    z-index:5;
+    transition:left .28s cubic-bezier(.4,0,.2,1), top .28s cubic-bezier(.4,0,.2,1), transform .18s ease;
+  }
+  .token::after{
+    content:"";
+    width:34%;height:34%;
+    border-radius:50%;
+    background:rgba(255,255,255,.55);
+  }
+  .token-red{background:radial-gradient(circle at 35% 30%, #ff8f88, var(--red) 60%, var(--red-d));}
+  .token-green{background:radial-gradient(circle at 35% 30%, #7fe3a5, var(--green) 60%, var(--green-d));}
+  .token-yellow{background:radial-gradient(circle at 35% 30%, #ffe98a, var(--yellow) 60%, var(--yellow-d));}
+  .token-blue{background:radial-gradient(circle at 35% 30%, #8cbcff, var(--blue) 60%, var(--blue-d));}
+  .token.legal{cursor:pointer;animation:pulse 1s ease-in-out infinite;z-index:6;}
+  .token.selected{outline:3px solid var(--accent);outline-offset:2px;}
+  .token.capturing{animation:poof .45s ease forwards;}
+  .token.entering{animation:pop-out .3s ease;}
+  @keyframes pulse{
+    0%,100%{transform:translate(-50%,-50%) scale(1);filter:brightness(1);}
+    50%{transform:translate(-50%,-50%) scale(1.28);filter:brightness(1.2);}
+  }
+  @keyframes poof{
+    0%{transform:translate(-50%,-50%) scale(1);opacity:1;}
+    60%{transform:translate(-50%,-50%) scale(1.6);opacity:.5;}
+    100%{transform:translate(-50%,-50%) scale(.2);opacity:0;}
+  }
+  @keyframes pop-out{
+    0%{transform:translate(-50%,-50%) scale(.3);opacity:.4;}
+    70%{transform:translate(-50%,-50%) scale(1.25);opacity:1;}
+    100%{transform:translate(-50%,-50%) scale(1);opacity:1;}
+  }
+
+  .board-wrap.celebrate #board{animation:shake .5s ease;}
+  @keyframes shake{
+    0%,100%{transform:translate(0,0);}
+    20%{transform:translate(-4px,2px);}
+    40%{transform:translate(4px,-2px);}
+    60%{transform:translate(-3px,-2px);}
+    80%{transform:translate(3px,2px);}
+  }
+
+  .panel{
+    background:var(--panel);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:14px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .panel h2{margin:0 0 2px;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+  .turn-strip{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;
+    border-radius:12px;
+    background:var(--board-bg);
+  }
+  .turn-swatch{width:16px;height:16px;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,.06);}
+  .turn-strip strong{font-size:1rem;}
+  .turn-strip span.tag{
+    margin-left:auto;font-size:.72rem;color:var(--muted);
+    background:var(--panel);padding:3px 8px;border-radius:20px;
+  }
+
+  .dice-row{display:flex;align-items:center;gap:14px;}
+  #dice{
+    width:64px;height:64px;
+    border-radius:16px;
+    background:linear-gradient(160deg,#fff,#e6e9f2);
+    box-shadow:var(--shadow-sm), inset 0 0 0 1px rgba(0,0,0,.06);
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(3,1fr);
+    padding:9px;
+    flex-shrink:0;
+  }
+  html[data-theme="dark"] #dice{background:linear-gradient(160deg,#3a4054,#262b39);}
+  .pip{border-radius:50%;background:transparent;align-self:center;justify-self:center;width:60%;height:60%;}
+  .pip.on{background:#2b2f3a;}
+  html[data-theme="dark"] .pip.on{background:#eceff5;}
+  #dice.rolling{animation:tumble .12s linear infinite;}
+  @keyframes tumble{
+    0%{transform:rotate(0deg) scale(1);}
+    50%{transform:rotate(8deg) scale(1.05);}
+    100%{transform:rotate(-8deg) scale(1);}
+  }
+  #dice.settled{animation:bounce .35s ease;}
+  @keyframes bounce{
+    0%{transform:scale(1.3) rotate(0);}
+    60%{transform:scale(.92) rotate(2deg);}
+    100%{transform:scale(1) rotate(0);}
+  }
+  .roll-col{display:flex;flex-direction:column;gap:6px;flex:1;}
+  #rollBtn{
+    border:none;
+    padding:12px 16px;
+    font-size:1rem;
+    font-weight:600;
+    color:#fff;
+    background:linear-gradient(135deg,var(--accent),#8f7bff);
+    border-radius:12px;
+    cursor:pointer;
+    box-shadow:0 8px 18px rgba(108,92,231,.35);
+    transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+  }
+  #rollBtn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 22px rgba(108,92,231,.45);}
+  #rollBtn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;}
+  #diceHint{font-size:.72rem;color:var(--muted);}
+
+  .dice-history{
+    display:flex;gap:5px;flex-wrap:wrap;
+    max-height:44px;overflow-y:auto;
+  }
+  .dice-history span{
+    width:22px;height:22px;border-radius:6px;
+    background:var(--board-bg);
+    display:flex;align-items:center;justify-content:center;
+    font-size:.72rem;font-weight:600;color:var(--muted);
+  }
+
+  .players{display:flex;flex-direction:column;gap:8px;}
+  .player-row{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 10px;border-radius:12px;
+    background:var(--board-bg);
+    font-size:.82rem;
+    position:relative;
+  }
+  .player-row.active{box-shadow:0 0 0 2px var(--accent) inset;}
+  .player-row.finished{opacity:.6;}
+  .p-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+  .p-name{font-weight:600;flex:1;}
+  .p-stats{display:flex;gap:10px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .p-stats b{color:var(--text);}
+  .rank-badge{
+    font-size:.68rem;font-weight:700;
+    background:var(--accent);color:#fff;
+    border-radius:20px;padding:2px 7px;
+  }
+
+  details{background:var(--board-bg);border-radius:12px;padding:8px 10px;}
+  details summary{cursor:pointer;font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;list-style:none;display:flex;justify-content:space-between;align-items:center;}
+  details summary::-webkit-details-marker{display:none;}
+  details summary::after{content:"▾";transition:transform .2s ease;}
+  details[open] summary::after{transform:rotate(180deg);}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:8px;font-size:.8rem;}
+  .stat-grid div{display:flex;justify-content:space-between;gap:6px;}
+  .stat-grid b{font-variant-numeric:tabular-nums;}
+  #log{margin-top:8px;max-height:170px;overflow-y:auto;font-size:.78rem;display:flex;flex-direction:column-reverse;gap:4px;}
+  #log div{padding:4px 6px;border-radius:8px;background:var(--panel);}
+
+  .controls-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .btn{
+    border:none;padding:9px 12px;border-radius:10px;
+    background:var(--board-bg);color:var(--text);
+    font-size:.8rem;font-weight:600;cursor:pointer;
+    box-shadow:var(--shadow-sm);
+    transition:transform .15s ease;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+  .kbd-hint{font-size:.7rem;color:var(--muted);line-height:1.5;}
+  .kbd-hint kbd{background:var(--board-bg);border-radius:5px;padding:1px 6px;font-family:inherit;}
+
+  #winnerOverlay, #startOverlay{
+    position:fixed;inset:0;
+    background:rgba(10,12,20,.55);
+    display:none;
+    align-items:center;justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  #winnerOverlay.show, #startOverlay.show{display:flex;}
+  .start-card{
+    background:var(--panel);
+    border-radius:20px;
+    padding:32px 36px;
+    text-align:center;
+    box-shadow:var(--shadow);
+    max-width:440px;
+    max-height:88vh;
+    overflow-y:auto;
+    animation:pop .35s cubic-bezier(.34,1.56,.64,1);
+  }
+  .start-card h2{margin:0 0 6px;font-size:1.5rem;}
+  .start-card p{color:var(--muted);margin:0 0 18px;font-size:.85rem;}
+  .rules-box{
+    text-align:left;
+    background:var(--board-bg);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:20px;
+  }
+  .rules-box h3{margin:0 0 8px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+  .rules-box ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:.82rem;color:var(--text);}
+  .color-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-bottom:8px;
+  }
+  .color-option{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    padding:16px 10px;
+    border-radius:14px;
+    border:2px solid transparent;
+    background:var(--board-bg);
+    cursor:pointer;
+    font-size:.85rem;
+    font-weight:600;
+    color:var(--text);
+    transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .color-option:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);}
+  .color-option:focus-visible{outline:none;border-color:var(--accent);}
+  .color-option .swatch{
+    width:40px;height:40px;border-radius:50%;
+    box-shadow:0 2px 5px rgba(0,0,0,.35), inset 0 -2px 3px rgba(0,0,0,.25), inset 0 2px 3px rgba(255,255,255,.5);
+  }
+  .winner-card{
+    background:var(--panel);
+    border-radius:20px;
+    padding:28px 32px;
+    text-align:center;
+    box-shadow:var(--shadow);
+    max-width:360px;
+    animation:pop .35s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes pop{
+    0%{transform:scale(.7);opacity:0;}
+    100%{transform:scale(1);opacity:1;}
+  }
+  .winner-card h2{margin:0 0 6px;font-size:1.4rem;}
+  .winner-card p{color:var(--muted);margin:0 0 16px;font-size:.85rem;}
+  .final-rank{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+  .final-rank div{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:10px;background:var(--board-bg);font-size:.85rem;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001s !important; animation-iteration-count:1 !important; transition-duration:.001s !important;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1><span class="dot"></span>Ludo</h1>
+    <div class="top-controls">
+      <button class="icon-btn" id="soundBtn" title="Toggle sound">🔊</button>
+      <button class="icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="board-card">
+      <div class="board-wrap" id="boardWrap">
+        <div id="board"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="turn-strip">
+        <span class="turn-swatch" id="turnSwatch"></span>
+        <strong id="turnLabel">Red's turn</strong>
+        <span class="tag" id="phaseTag">Roll the dice</span>
+      </div>
+
+      <div class="dice-row">
+        <div id="dice"></div>
+        <div class="roll-col">
+          <button id="rollBtn">Roll Dice</button>
+          <div id="diceHint">Space to roll</div>
+        </div>
+      </div>
+      <div class="dice-history" id="diceHistory"></div>
+
+      <div class="players" id="players"></div>
+
+      <details>
+        <summary>Statistics</summary>
+        <div class="stat-grid" id="statGrid"></div>
+      </details>
+
+      <details open>
+        <summary>Turn history</summary>
+        <div id="log"></div>
+      </details>
+
+      <div class="controls-row">
+        <button class="btn" id="undoBtn" disabled>Undo</button>
+        <button class="btn" id="restartBtn">Restart</button>
+        <button class="btn" id="newGameBtn">New Game</button>
+      </div>
+      <div class="kbd-hint">
+        <kbd>Space</kbd> roll &nbsp; <kbd>←</kbd><kbd>→</kbd> select token &nbsp; <kbd>Enter</kbd> confirm move
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="startOverlay" class="show">
+  <div class="start-card">
+    <h2>Choose your color</h2>
+    <p>You'll play this color against 3 bots.</p>
+    <div class="rules-box">
+      <h3>How to play</h3>
+      <ul>
+        <li>Roll a 6 to bring a token out of your yard and onto the board.</li>
+        <li>Each roll moves one of your tokens that many spaces around the ring.</li>
+        <li>Land exactly on an opponent's token (off a ★ safe cell) to send it back to its yard.</li>
+        <li>Two of your own tokens sharing a cell form a block: no opponent can land on it.</li>
+        <li>Rolling a 6 earns another roll, but three 6s in a row forfeits the turn.</li>
+        <li>Bring all 4 tokens home with an exact roll to finish; the game ends once 3 players finish.</li>
+      </ul>
+    </div>
+    <div class="color-grid" id="colorGrid"></div>
+  </div>
+</div>
+
+<div id="winnerOverlay">
+  <div class="winner-card">
+    <h2 id="winnerTitle">Game Over</h2>
+    <p id="winnerSub">Final standings</p>
+    <div class="final-rank" id="finalRank"></div>
+    <button class="btn" id="winnerCloseBtn">Close</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* Constants */
+const COLORS = ["red","green","yellow","blue"];
+const COLOR_HEX = { red:"#e6483f", green:"#2fb861", yellow:"#f4c11f", blue:"#3186f2" };
+let humanColor = "red"; // chosen on the start screen
+const TOKENS_PER_PLAYER = 4;
+const RING_LENGTH = 52;
+const HOME_COLUMN_LENGTH = 6;
+const STEPS_TO_FINISH = RING_LENGTH - 1 + HOME_COLUMN_LENGTH; // 57
+const STEP_ANIM_MS = 220;
+const BOT_THINK_MS = 550;
+const DICE_HOLD_MS = 900; // how long the settled dice value stays fully visible before anything else advances
+
+// Rotate a [row,col] pair 90deg clockwise around the 15x15 board center.
+function rot([r,c]){ return [c, 14 - r]; }
+function rotateAll(arr, times){
+  let out = arr;
+  for(let i=0;i<times;i++) out = out.map(rot);
+  return out;
+}
+
+// Red's own 13-cell contribution to the shared 52-cell ring, and its private home column.
+const RED_SEGMENT = [[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8]];
+const RED_HOME_COL = [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]];
+
+const SEGMENTS = [RED_SEGMENT, rotateAll(RED_SEGMENT,1), rotateAll(RED_SEGMENT,2), rotateAll(RED_SEGMENT,3)];
+const PATH = [].concat(...SEGMENTS); // 52 shared ring cells, in travel order starting at Red's start square
+
+const HOME_COLUMNS = {
+  red: RED_HOME_COL,
+  green: rotateAll(RED_HOME_COL,1),
+  yellow: rotateAll(RED_HOME_COL,2),
+  blue: rotateAll(RED_HOME_COL,3)
+};
+
+const START_OFFSET = { red:0, green:13, yellow:26, blue:39 };
+const SAFE_INDICES = new Set([0,8,13,21,26,34,39,47]);
+
+const HOME_SLOTS = {
+  red:   [[1,1],[1,4],[4,1],[4,4]],
+  green: [[1,10],[1,13],[4,10],[4,13]],
+  yellow:[[10,10],[10,13],[13,10],[13,13]],
+  blue:  [[10,1],[10,4],[13,1],[13,4]]
+};
+
+const FINISH_SLOTS = {
+  red:[[6.6,6.6]], green:[[6.6,7.4]], yellow:[[7.4,7.4]], blue:[[7.4,6.6]]
+};
+
+const DICE_PIPS = {
+  1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8]
+};
+
+/* Utilities */
+function rand(n){ return Math.floor(Math.random()*n); }
+function rollDie(){ return 1 + rand(6); }
+function wait(ms){
+  return new Promise(resolve=>{
+    let start = null;
+    function step(ts){
+      if(start===null) start = ts;
+      if(ts - start >= ms) resolve();
+      else requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+function el(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
+function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
+function fmtTime(ms){
+  const s = Math.floor(ms/1000);
+  const m = Math.floor(s/60);
+  return `${m}:${String(s%60).padStart(2,"0")}`;
+}
+function otherColors(color){ return COLORS.filter(c=>c!==color); }
+
+/* Audio (Web Audio API, no external files) */
+const Sound = (() => {
+  let ctx = null;
+  let on = true;
+  function ensureCtx(){
+    if(!ctx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      ctx = new AC();
+    }
+    if(ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+  function tone(freq, dur, opts={}){
+    if(!on) return;
+    const c = ensureCtx();
+    const t0 = c.currentTime + (opts.delay||0);
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = opts.type || "sine";
+    osc.frequency.setValueAtTime(freq, t0);
+    if(opts.slideTo) osc.frequency.exponentialRampToValueAtTime(opts.slideTo, t0+dur);
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(opts.vol||0.18, t0+0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t0);
+    osc.stop(t0+dur+0.03);
+  }
+  return {
+    setOn(v){ on = v; },
+    isOn(){ return on; },
+    roll(){ for(let i=0;i<3;i++) tone(300+rand(150), 0.06, {type:"square", delay:i*0.08, vol:0.08}); },
+    move(){ tone(520, 0.08, {type:"triangle", vol:0.14}); },
+    capture(){ tone(500, 0.28, {type:"sawtooth", slideTo:120, vol:0.16}); },
+    finish(){ [660,880,990].forEach((f,i)=>tone(f,0.18,{delay:i*0.09, vol:0.16})); },
+    win(){ [523,659,784,1046].forEach((f,i)=>tone(f,0.32,{delay:i*0.12, vol:0.18})); }
+  };
+})();
+
+/* Game state */
+let state = null;
+
+function freshState(){
+  const players = COLORS.map((color, idx) => ({
+    color,
+    isHuman: color === humanColor,
+    tokens: Array.from({length:TOKENS_PER_PLAYER}, (_,id)=>({ color, id, steps:-1 })),
+    finishedCount: 0,
+    captures: 0,
+    moves: 0,
+    finishRank: null
+  }));
+  return {
+    players,
+    currentIdx: 0,
+    diceValue: null,
+    consecutiveSixes: 0,
+    phase: "rolling", // rolling | moving | animating | gameover
+    legalMoves: [],
+    selectedIdx: -1,
+    diceHistory: [],
+    log: [],
+    stats: { turns:0, captures:0, sixes:0, diceSum:0, diceCount:0, startTime: Date.now() },
+    undoSnapshot: null,
+    rankOrder: [],
+    gameOver: false
+  };
+}
+
+function currentPlayer(){ return state.players[state.currentIdx]; }
+
+/* Board generation & rendering */
+const boardEl = document.getElementById("board");
+const tokenEls = {}; // key "color-id" -> element
+
+function coordPercent(r,c){
+  return { left: ((c+0.5)/15*100)+"%", top: ((r+0.5)/15*100)+"%" };
+}
+
+function buildBoard(){
+  boardEl.innerHTML = "";
+
+  // Yard blocks
+  const yardAreas = {
+    red:[1,1], green:[1,10], yellow:[10,10], blue:[10,1]
+  };
+  COLORS.forEach(color=>{
+    const [r,c] = yardAreas[color];
+    const yard = el("div", `yard yard-${color}`);
+    yard.style.gridRow = `${r}/${r+6}`;
+    yard.style.gridColumn = `${c}/${c+6}`;
+    HOME_SLOTS[color].forEach(([sr,sc])=>{
+      const slot = el("div","yard-slot");
+      const localTop = ((sr - (r-1) + 0.5)/6*100)+"%";
+      const localLeft = ((sc - (c-1) + 0.5)/6*100)+"%";
+      slot.style.top = localTop; slot.style.left = localLeft;
+      yard.appendChild(slot);
+    });
+    boardEl.appendChild(yard);
+  });
+
+  // Ring path cells
+  PATH.forEach(([r,c], idx)=>{
+    const cell = el("div","cell");
+    cell.style.gridRow = `${r+1}/${r+2}`;
+    cell.style.gridColumn = `${c+1}/${c+2}`;
+    if(SAFE_INDICES.has(idx)) cell.classList.add("safe");
+    COLORS.forEach(color=>{
+      if(START_OFFSET[color]===idx) cell.classList.add(`start-${color}`);
+    });
+    boardEl.appendChild(cell);
+  });
+
+  // Home column cells
+  COLORS.forEach(color=>{
+    HOME_COLUMNS[color].forEach(([r,c])=>{
+      const cell = el("div", `cell home-${color}`);
+      cell.style.gridRow = `${r+1}/${r+2}`;
+      cell.style.gridColumn = `${c+1}/${c+2}`;
+      boardEl.appendChild(cell);
+    });
+  });
+
+  // Center finish box (rows6-8, cols6-8)
+  const center = el("div","center-box");
+  center.style.gridRow = "7/10";
+  center.style.gridColumn = "7/10";
+  ["west","north","east","south"].forEach(dir=>{
+    const t = el("div", `center-tri tri-${dir}`);
+    center.appendChild(t);
+  });
+  const star = el("div","star"); star.textContent = "★";
+  center.appendChild(star);
+  boardEl.appendChild(center);
+
+  // Tokens
+  COLORS.forEach(color=>{
+    for(let id=0; id<TOKENS_PER_PLAYER; id++){
+      const t = el("div", `token token-${color}`);
+      t.dataset.color = color;
+      t.dataset.id = id;
+      t.addEventListener("click", onTokenClick);
+      boardEl.appendChild(t);
+      tokenEls[`${color}-${id}`] = t;
+    }
+  });
+}
+
+function tokenCoord(token){
+  if(token.steps === STEPS_TO_FINISH){
+    const [r,c] = FINISH_SLOTS[token.color][0];
+    return coordPercent(r + token.id*0.001, c); // tiny stagger to keep DOM stable
+  }
+  if(token.steps === -1){
+    const [r,c] = HOME_SLOTS[token.color][token.id];
+    return coordPercent(r,c);
+  }
+  if(token.steps <= 50){
+    const abs = (START_OFFSET[token.color] + token.steps) % RING_LENGTH;
+    const [r,c] = PATH[abs];
+    return offsetForStack(token, r, c);
+  }
+  const [r,c] = HOME_COLUMNS[token.color][token.steps - 51];
+  return coordPercent(r,c);
+}
+
+// When 2+ tokens share a ring cell, fan them out slightly so all remain visible/clickable.
+function offsetForStack(token, r, c){
+  const mates = tokensAtRingCell(cellIndexFor(token))
+    .filter(t=>!(t.steps===-1) )
+    .sort((a,b)=> (a.color+a.id).localeCompare(b.color+b.id));
+  const n = mates.length;
+  const i = mates.findIndex(t=>t.color===token.color && t.id===token.id);
+  if(n<=1) return coordPercent(r,c);
+  const dx = (i - (n-1)/2);
+  return {
+    left: `calc(${((c+0.5)/15*100)}% + ${dx*10}px)`,
+    top: `calc(${((r+0.5)/15*100)}% - ${dx*4}px)`
+  };
+}
+
+function cellIndexFor(token){
+  return (START_OFFSET[token.color] + token.steps) % RING_LENGTH;
+}
+
+function tokensAtRingCell(absIdx){
+  const found = [];
+  state.players.forEach(p=>p.tokens.forEach(t=>{
+    if(t.steps>=0 && t.steps<=50 && cellIndexFor(t)===absIdx) found.push(t);
+  }));
+  return found;
+}
+
+function renderTokens(){
+  state.players.forEach(p=>{
+    p.tokens.forEach(t=>{
+      const node = tokenEls[`${t.color}-${t.id}`];
+      const pos = tokenCoord(t);
+      node.style.left = pos.left;
+      node.style.top = pos.top;
+      const isLegal = state.phase==="moving" && p===currentPlayer() && state.legalMoves.some(m=>m.tokenId===t.id);
+      node.classList.toggle("legal", isLegal);
+      node.classList.toggle("selected", isLegal && state.legalMoves[state.selectedIdx] && state.legalMoves[state.selectedIdx].tokenId===t.id);
+    });
+  });
+}
+
+/* Rules / movement */
+function blockAt(color, absIdx){
+  // true if an opposing color has 2+ tokens stacked on this ring cell (uncapturable, blocks landing)
+  for(const p of state.players){
+    if(p.color===color) continue;
+    const count = p.tokens.filter(t=>t.steps>=0 && t.steps<=50 && cellIndexFor(t)===absIdx).length;
+    if(count>=2) return true;
+  }
+  return false;
+}
+
+function computeLegalMoves(player, diceVal){
+  const moves = [];
+  player.tokens.forEach(token=>{
+    if(token.steps === STEPS_TO_FINISH) return; // already finished
+    if(token.steps === -1){
+      if(diceVal===6){
+        const absIdx = START_OFFSET[player.color];
+        if(!blockAt(player.color, absIdx)) moves.push({ tokenId: token.id, newSteps: 0 });
+      }
+      return;
+    }
+    const newSteps = token.steps + diceVal;
+    if(newSteps > STEPS_TO_FINISH) return; // overshoot, illegal
+    if(newSteps <= 50){
+      const absIdx = (START_OFFSET[player.color] + newSteps) % RING_LENGTH;
+      if(blockAt(player.color, absIdx)) return;
+    }
+    moves.push({ tokenId: token.id, newSteps });
+  });
+  return moves;
+}
+
+function isThreatened(color, absIdx){
+  if(SAFE_INDICES.has(absIdx)) return false;
+  for(const p of state.players){
+    if(p.color===color) continue;
+    for(const t of p.tokens){
+      if(t.steps<0 || t.steps>50) continue;
+      const oppAbs = cellIndexFor(t);
+      const diff = (absIdx - oppAbs + RING_LENGTH) % RING_LENGTH;
+      if(diff>=1 && diff<=6) return true;
+    }
+  }
+  return false;
+}
+
+function totalProgress(player, overrideTokenId, overrideSteps){
+  return player.tokens.reduce((sum,t)=>{
+    const steps = (t.id===overrideTokenId) ? overrideSteps : t.steps;
+    return sum + Math.max(steps,0);
+  },0);
+}
+
+/* Bot logic (deterministic weighted heuristic, no search/learning) */
+function scoreMove(player, move){
+  const token = player.tokens.find(t=>t.id===move.tokenId);
+  const oldSteps = token.steps;
+  const newSteps = move.newSteps;
+  const finishes = newSteps===STEPS_TO_FINISH ? 1 : 0;
+
+  let capturedCount = 0;
+  if(newSteps<=50){
+    const absIdx = (START_OFFSET[player.color]+newSteps) % RING_LENGTH;
+    state.players.forEach(p=>{
+      if(p.color===player.color) return;
+      const here = p.tokens.filter(t=>t.steps>=0 && t.steps<=50 && cellIndexFor(t)===absIdx).length;
+      if(here===1) capturedCount++;
+    });
+  }
+
+  const entersBoard = oldSteps===-1 ? 1 : 0;
+
+  const oldThreatened = (oldSteps>=0 && oldSteps<=50) ? isThreatened(player.color, cellIndexFor(token)) : false;
+  const newThreatened = (newSteps<=50) ? isThreatened(player.color, (START_OFFSET[player.color]+newSteps)%RING_LENGTH) : false;
+  const toSafety = (oldThreatened && !newThreatened) ? 1 : 0;
+  const landsSafe = (newSteps<=50 && SAFE_INDICES.has((START_OFFSET[player.color]+newSteps)%RING_LENGTH)) ? 1 : 0;
+  const nearHome = oldSteps;
+  const riskReduction = (oldThreatened?1:0) - (newThreatened?1:0);
+  const progressAfter = totalProgress(player, token.id, finishes?STEPS_TO_FINISH:newSteps);
+
+  return [finishes, capturedCount, entersBoard, toSafety, landsSafe, nearHome, riskReduction, progressAfter, Math.random()];
+}
+
+function vectorCompare(a,b){
+  for(let i=0;i<a.length;i++){
+    if(a[i]!==b[i]) return a[i]-b[i];
+  }
+  return 0;
+}
+
+function botChooseMove(player, moves){
+  let best = moves[0], bestVec = scoreMove(player, best);
+  for(let i=1;i<moves.length;i++){
+    const vec = scoreMove(player, moves[i]);
+    if(vectorCompare(vec, bestVec) > 0){ best = moves[i]; bestVec = vec; }
+  }
+  return best;
+}
+
+/* Animation */
+async function animateMove(player, move){
+  const token = player.tokens.find(t=>t.id===move.tokenId);
+  const node = tokenEls[`${token.color}-${token.id}`];
+  const from = token.steps;
+  const to = move.newSteps;
+
+  if(from===-1){
+    token.steps = 0;
+    renderTokens();
+    node.classList.add("entering");
+    await wait(300);
+    node.classList.remove("entering");
+  } else {
+    for(let s=from+1; s<=to; s++){
+      token.steps = s;
+      renderTokens();
+      await wait(Math.max(70, STEP_ANIM_MS - to*2));
+    }
+  }
+  Sound.move();
+}
+
+async function animateCapture(token){
+  const node = tokenEls[`${token.color}-${token.id}`];
+  node.classList.add("capturing");
+  Sound.capture();
+  await wait(450);
+  node.classList.remove("capturing");
+  renderTokens();
+}
+
+/* Statistics + rendering (players / dice / log / stats) */
+const playersEl = document.getElementById("players");
+const diceHistoryEl = document.getElementById("diceHistory");
+const logEl = document.getElementById("log");
+const statGridEl = document.getElementById("statGrid");
+const turnLabelEl = document.getElementById("turnLabel");
+const turnSwatchEl = document.getElementById("turnSwatch");
+const phaseTagEl = document.getElementById("phaseTag");
+const rollBtn = document.getElementById("rollBtn");
+const undoBtn = document.getElementById("undoBtn");
+
+function addLog(msg){
+  state.log.push(msg);
+  const div = el("div"); div.textContent = msg;
+  logEl.appendChild(div);
+  if(logEl.children.length>200) logEl.removeChild(logEl.firstChild);
+}
+
+function renderDice(value){
+  const dice = document.getElementById("dice");
+  dice.innerHTML = "";
+  const active = value ? DICE_PIPS[value] : [];
+  for(let i=0;i<9;i++){
+    const pip = el("div", "pip"+(active.includes(i)?" on":""));
+    dice.appendChild(pip);
+  }
+}
+
+function renderDiceHistory(){
+  diceHistoryEl.innerHTML = "";
+  state.diceHistory.slice(-24).forEach(v=>{
+    const s = el("span"); s.textContent = v;
+    diceHistoryEl.appendChild(s);
+  });
+  diceHistoryEl.scrollLeft = diceHistoryEl.scrollWidth;
+}
+
+function computeLiveRank(){
+  return [...state.players].sort((a,b)=>{
+    if(a.finishRank!==null || b.finishRank!==null){
+      const ar = a.finishRank===null?99:a.finishRank, br = b.finishRank===null?99:b.finishRank;
+      if(ar!==br) return ar-br;
+    }
+    if(b.finishedCount!==a.finishedCount) return b.finishedCount-a.finishedCount;
+    return totalProgress(b) - totalProgress(a);
+  });
+}
+
+function renderPlayers(){
+  playersEl.innerHTML = "";
+  const ranked = computeLiveRank();
+  ranked.forEach(p=>{
+    const row = el("div", "player-row"+(p===currentPlayer() && !state.gameOver ? " active":"")+(p.finishRank!==null?" finished":""));
+    const dot = el("div","p-dot"); dot.style.background = COLOR_HEX[p.color];
+    const name = el("div","p-name"); name.textContent = p.color[0].toUpperCase()+p.color.slice(1)+(p.isHuman?" (You)":" (Bot)");
+    const stats = el("div","p-stats");
+    stats.innerHTML = `<span>🏁 <b>${p.finishedCount}</b>/4</span><span>⚔ <b>${p.captures}</b></span>`;
+    row.appendChild(dot); row.appendChild(name); row.appendChild(stats);
+    if(p.finishRank!==null){
+      const badge = el("span","rank-badge");
+      badge.textContent = ["1st","2nd","3rd","4th"][p.finishRank];
+      row.appendChild(badge);
+    }
+    playersEl.appendChild(row);
+  });
+}
+
+function renderStats(){
+  const s = state.stats;
+  const avg = s.diceCount ? (s.diceSum/s.diceCount).toFixed(2) : "0.00";
+  const totalMoves = state.players.reduce((sum,p)=>sum+p.moves,0);
+  statGridEl.innerHTML = `
+    <div><span>Total turns</span><b>${s.turns}</b></div>
+    <div><span>Total captures</span><b>${s.captures}</b></div>
+    <div><span>Sixes rolled</span><b>${s.sixes}</b></div>
+    <div><span>Avg dice value</span><b>${avg}</b></div>
+    <div><span>Total moves</span><b>${totalMoves}</b></div>
+    <div><span>Duration</span><b id="durationStat">${fmtTime(Date.now()-s.startTime)}</b></div>
+  `;
+}
+
+function renderTurnStrip(){
+  const p = currentPlayer();
+  turnSwatchEl.style.background = COLOR_HEX[p.color];
+  turnLabelEl.textContent = `${p.color[0].toUpperCase()+p.color.slice(1)}'s turn${p.isHuman?" (You)":""}`;
+  const phaseText = {
+    rolling: p.isHuman ? "Roll the dice" : "Bot is rolling…",
+    moving: p.isHuman ? "Choose a highlighted token" : "Bot is thinking…",
+    animating: "Moving…",
+    gameover: "Game over"
+  }[state.phase];
+  phaseTagEl.textContent = phaseText;
+  rollBtn.disabled = !(p.isHuman && state.phase==="rolling" && !state.gameOver);
+  undoBtn.disabled = !state.undoSnapshot;
+}
+
+function renderAll(){
+  renderTokens();
+  renderPlayers();
+  renderStats();
+  renderTurnStrip();
+}
+
+/* Turn manager */
+async function rollDiceAction(){
+  if(state.phase!=="rolling" || state.gameOver) return;
+  const player = currentPlayer();
+  rollBtn.disabled = true;
+  state.undoSnapshot = null; // a fresh roll invalidates any pending undo from the prior move
+
+  const dice = document.getElementById("dice");
+  dice.classList.add("rolling");
+  Sound.roll();
+  const tumbleEnd = Date.now()+500;
+  while(Date.now()<tumbleEnd){
+    renderDice(1+rand(6));
+    await wait(60);
+  }
+  dice.classList.remove("rolling");
+
+  const value = rollDie();
+  state.diceValue = value;
+  renderDice(value);
+  dice.classList.add("settled");
+  setTimeout(()=>dice.classList.remove("settled"), 350);
+
+  state.diceHistory.push(value);
+  renderDiceHistory();
+  state.stats.turns++;
+  state.stats.diceSum += value;
+  state.stats.diceCount++;
+  if(value===6){ state.stats.sixes++; state.consecutiveSixes++; } else state.consecutiveSixes = 0;
+
+  addLog(`${label(player)} rolled a ${value}.`);
+  await wait(DICE_HOLD_MS); // give the player time to actually read the number before anything else happens
+
+  if(state.consecutiveSixes===3){
+    addLog(`${label(player)} rolled three sixes in a row — turn forfeited.`);
+    state.consecutiveSixes = 0;
+    await advanceTurn(false);
+    return;
+  }
+
+  const moves = computeLegalMoves(player, value);
+  state.legalMoves = moves;
+  state.selectedIdx = moves.length ? 0 : -1;
+
+  if(moves.length===0){
+    addLog(`${label(player)} has no legal move.`);
+    await advanceTurn(value===6);
+    return;
+  }
+
+  state.phase = "moving";
+  renderAll();
+
+  if(!player.isHuman){
+    await wait(BOT_THINK_MS);
+    const move = botChooseMove(player, moves);
+    await performMove(player, move);
+  }
+}
+
+function label(player){
+  return player.color[0].toUpperCase()+player.color.slice(1)+(player.isHuman?"":" (bot)");
+}
+
+async function performMove(player, move){
+  if(player.isHuman){
+    state.undoSnapshot = { state: clone(minimalStateForUndo()), logLen: state.log.length };
+  }
+  state.phase = "animating";
+  renderAll();
+
+  const enteredFromYard = player.tokens.find(t=>t.id===move.tokenId).steps===-1;
+  await animateMove(player, move);
+  if(enteredFromYard) addLog(`${label(player)} brought a token onto the board.`);
+
+  const token = player.tokens.find(t=>t.id===move.tokenId);
+  player.moves++;
+
+  if(token.steps===STEPS_TO_FINISH){
+    player.finishedCount++;
+    Sound.finish();
+    addLog(`${label(player)} got a token home! (${player.finishedCount}/4)`);
+    if(player.finishedCount===4 && player.finishRank===null){
+      const already = state.players.filter(p=>p.finishRank!==null).length;
+      player.finishRank = already;
+      state.rankOrder.push(player.color);
+      addLog(`${label(player)} finished in ${["1st","2nd","3rd","4th"][player.finishRank]} place!`);
+    }
+  } else if(token.steps<=50){
+    const absIdx = cellIndexFor(token);
+    if(!SAFE_INDICES.has(absIdx)){
+      const capturedTokens = [];
+      state.players.forEach(p=>{
+        if(p.color===player.color) return;
+        const here = p.tokens.filter(t=>t.steps>=0 && t.steps<=50 && cellIndexFor(t)===absIdx);
+        if(here.length===1) capturedTokens.push({owner:p, token:here[0]});
+      });
+      if(capturedTokens.length){
+        for(const {owner, token:ct} of capturedTokens){
+          await animateCapture(ct);
+          ct.steps = -1;
+          player.captures++;
+          state.stats.captures++;
+          addLog(`${label(player)} captured ${label(owner)}'s token!`);
+        }
+        renderAll();
+      }
+    }
+  }
+
+  const finishedCount = state.players.filter(p=>p.finishRank!==null).length;
+  if(finishedCount>=3 && !state.gameOver){
+    endGame();
+    return;
+  }
+
+  renderAll();
+  const rolledSix = state.diceValue===6;
+  await advanceTurn(rolledSix);
+}
+
+async function advanceTurn(sameTurn){
+  state.legalMoves = [];
+  state.selectedIdx = -1;
+  state.diceValue = null;
+  renderDice(null);
+
+  if(state.gameOver) return;
+
+  if(sameTurn){
+    state.phase = "rolling";
+    renderAll();
+    if(!currentPlayer().isHuman){
+      await wait(BOT_THINK_MS);
+      rollDiceAction();
+    }
+    return;
+  }
+
+  state.undoSnapshot = null; // undo window closes once turn passes on
+  let next = state.currentIdx;
+  do{
+    next = (next+1) % state.players.length;
+  } while(state.players[next].finishRank!==null && state.players.some(p=>p.finishRank===null));
+  state.currentIdx = next;
+  state.consecutiveSixes = 0;
+  state.phase = "rolling";
+  renderAll();
+
+  if(!currentPlayer().isHuman && !state.gameOver){
+    await wait(BOT_THINK_MS);
+    rollDiceAction();
+  }
+}
+
+function minimalStateForUndo(){
+  return {
+    players: state.players,
+    currentIdx: state.currentIdx,
+    diceValue: state.diceValue,
+    consecutiveSixes: state.consecutiveSixes,
+    legalMoves: state.legalMoves,
+    stats: state.stats,
+    rankOrder: state.rankOrder
+  };
+}
+
+function endGame(){
+  state.gameOver = true;
+  state.phase = "gameover";
+  state.undoSnapshot = null; // no undoing across a finished game, even if the winner overlay gets closed
+  const remaining = state.players.find(p=>p.finishRank===null);
+  if(remaining) remaining.finishRank = 3;
+  document.getElementById("boardWrap").classList.add("celebrate");
+  Sound.win();
+  renderAll();
+  showWinnerOverlay();
+}
+
+/* Human input */
+function onTokenClick(e){
+  const node = e.currentTarget;
+  if(!node.classList.contains("legal")) return; // ignore invalid clicks
+  if(state.phase!=="moving" || !currentPlayer().isHuman) return;
+  const color = node.dataset.color, id = Number(node.dataset.id);
+  const move = state.legalMoves.find(m=>m.tokenId===id && color===currentPlayer().color);
+  if(!move) return;
+  performMove(currentPlayer(), move);
+}
+
+document.getElementById("rollBtn").addEventListener("click", rollDiceAction);
+
+document.getElementById("undoBtn").addEventListener("click", ()=>{
+  if(!state.undoSnapshot) return;
+  const { state: snap, logLen } = state.undoSnapshot;
+  state.players = snap.players;
+  state.currentIdx = snap.currentIdx;
+  state.diceValue = snap.diceValue;
+  state.consecutiveSixes = snap.consecutiveSixes;
+  state.legalMoves = computeLegalMoves(currentPlayer(), state.diceValue);
+  state.selectedIdx = state.legalMoves.length ? 0 : -1;
+  state.stats = snap.stats;
+  state.rankOrder = snap.rankOrder;
+  state.undoSnapshot = null;
+  state.phase = "moving";
+  while(state.log.length > logLen){
+    state.log.pop();
+    logEl.removeChild(logEl.lastChild);
+  }
+  addLog("Move undone.");
+  renderDice(state.diceValue);
+  renderAll();
+});
+
+document.getElementById("restartBtn").addEventListener("click", ()=> startGame(false));
+document.getElementById("newGameBtn").addEventListener("click", ()=> showStartOverlay());
+
+document.addEventListener("keydown", (e)=>{
+  if(startOverlay.classList.contains("show") || winnerOverlay.classList.contains("show")) return;
+  if(!currentPlayer() || !currentPlayer().isHuman || state.gameOver) return;
+  if(e.code==="Space"){
+    e.preventDefault();
+    if(state.phase==="rolling") rollDiceAction();
+  } else if(e.code==="ArrowRight" || e.code==="ArrowLeft"){
+    if(state.phase==="moving" && state.legalMoves.length){
+      e.preventDefault();
+      const dir = e.code==="ArrowRight" ? 1 : -1;
+      state.selectedIdx = (state.selectedIdx + dir + state.legalMoves.length) % state.legalMoves.length;
+      renderTokens();
+    }
+  } else if(e.code==="Enter"){
+    if(state.phase==="moving" && state.legalMoves[state.selectedIdx]){
+      e.preventDefault();
+      performMove(currentPlayer(), state.legalMoves[state.selectedIdx]);
+    }
+  }
+});
+
+/* Winner overlay / theme / sound toggles */
+const winnerOverlay = document.getElementById("winnerOverlay");
+function showWinnerOverlay(){
+  const ranked = [...state.players].sort((a,b)=>a.finishRank-b.finishRank);
+  document.getElementById("winnerTitle").textContent = `${label(ranked[0])} wins!`;
+  const rankDiv = document.getElementById("finalRank");
+  rankDiv.innerHTML = "";
+  ranked.forEach((p,i)=>{
+    const row = el("div");
+    row.innerHTML = `<span class="p-dot" style="background:${COLOR_HEX[p.color]}"></span> ${["1st","2nd","3rd","4th"][i]} — ${label(p)}`;
+    rankDiv.appendChild(row);
+  });
+  winnerOverlay.classList.add("show");
+}
+document.getElementById("winnerCloseBtn").addEventListener("click", ()=> winnerOverlay.classList.remove("show"));
+
+const soundBtn = document.getElementById("soundBtn");
+soundBtn.addEventListener("click", ()=>{
+  Sound.setOn(!Sound.isOn());
+  soundBtn.textContent = Sound.isOn() ? "🔊" : "🔈";
+});
+
+const themeBtn = document.getElementById("themeBtn");
+function setTheme(dark){
+  document.documentElement.setAttribute("data-theme", dark ? "dark":"light");
+  themeBtn.textContent = dark ? "☀️" : "🌙";
+}
+themeBtn.addEventListener("click", ()=>{
+  setTheme(document.documentElement.getAttribute("data-theme")!=="dark");
+});
+setTheme(window.matchMedia && window.matchMedia("prefers-color-scheme: dark").matches);
+
+/* START SCREEN (color selection) */
+const startOverlay = document.getElementById("startOverlay");
+function showStartOverlay(){ startOverlay.classList.add("show"); }
+function hideStartOverlay(){ startOverlay.classList.remove("show"); }
+
+const colorGrid = document.getElementById("colorGrid");
+COLORS.forEach(color=>{
+  const card = el("button","color-option");
+  card.type = "button";
+  const swatch = el("span","swatch");
+  swatch.style.background = `radial-gradient(circle at 35% 30%, #fff8, ${COLOR_HEX[color]} 60%)`;
+  const name = el("span");
+  name.textContent = color[0].toUpperCase()+color.slice(1);
+  card.appendChild(swatch);
+  card.appendChild(name);
+  card.addEventListener("click", ()=>{
+    humanColor = color;
+    hideStartOverlay();
+    startGame(true);
+  });
+  colorGrid.appendChild(card);
+});
+
+/* Game start / reset */
+let durationInterval = null;
+function startGame(isNewGame){
+  state = freshState();
+  winnerOverlay.classList.remove("show");
+  document.getElementById("boardWrap").classList.remove("celebrate");
+  logEl.innerHTML = "";
+  diceHistoryEl.innerHTML = "";
+  renderDice(null);
+  addLog(isNewGame ? "New game started." : "Game restarted.");
+  renderAll();
+  if(durationInterval) clearInterval(durationInterval);
+  durationInterval = setInterval(()=>{
+    const d = document.getElementById("durationStat");
+    if(d && !state.gameOver) d.textContent = fmtTime(Date.now()-state.stats.startTime);
+  }, 1000);
+
+  if(!currentPlayer().isHuman){
+    wait(BOT_THINK_MS).then(()=> rollDiceAction());
+  }
+}
+
+buildBoard();
+startGame(true);
+</script>
+</body>
+</html>
