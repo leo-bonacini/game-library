@@ -2,7 +2,7 @@
 
 A modern, dependency-free take on classic Minesweeper. Built with plain HTML5, CSS3, and vanilla JavaScript (ES6 modules): no frameworks, no build step.
 
-**[Play it live](https://leo-bonacini.github.io/minesweeper/)** · hosted on GitHub Pages
+**[Play it live](https://leo-bonacini.github.io/game-library/games/minesweeper/)** · hosted on GitHub Pages
 
 ## Features
 
