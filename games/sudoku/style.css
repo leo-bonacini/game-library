@@ -1,10 +1,9 @@
-/* Root variables / themes */
 :root {
   --radius-lg: var(--gl-radius);
   --radius-md: var(--gl-radius-sm);
   --radius-sm: 8px;
   --font: var(--gl-font);
-  /* Hooks for external tooling to vary the rendered board's appearance. */
+  /* Overridden by external tooling */
   --cell-font-size: clamp(1rem, 3.4vw, 1.6rem);
   --grid-border-width: 1px;
   --grid-border-width-strong: 2px;
@@ -64,7 +63,6 @@
   --accent: #a95c00;
 }
 
-/* Reset / base */
 * { box-sizing: border-box; }
 
 html, body {
@@ -115,7 +113,6 @@ button {
 .icon-btn:hover { background: var(--cell-bg-hover); }
 .icon-btn:active { transform: scale(0.9); }
 
-/* Layout */
 .game-layout {
   display: flex;
   gap: 24px;
@@ -176,7 +173,6 @@ button {
 }
 .stat-row:last-child { border-bottom: none; }
 
-/* Game info / timer / progress */
 .game-info {
   width: 100%;
   display: flex;
@@ -220,7 +216,6 @@ button {
   transition: width 0.35s ease;
 }
 
-/* Board */
 .board-wrapper {
   position: relative;
   width: 100%;
@@ -296,7 +291,6 @@ button {
   40%, 60% { transform: translateX(5px); }
 }
 
-/* Pencil-mark notes grid */
 .notes-grid {
   position: absolute;
   inset: 3px;
@@ -320,7 +314,6 @@ button {
   font-weight: 800;
 }
 
-/* OVERLAYS (pause / victory) */
 .overlay {
   position: absolute;
   inset: 0;
@@ -374,7 +367,6 @@ button {
   to { transform: translateY(520px) rotate(540deg); opacity: 0; }
 }
 
-/* Number pad / action bar */
 .number-pad {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
@@ -431,7 +423,6 @@ button {
 .btn:disabled { opacity: 0.4; pointer-events: none; }
 .btn .ico { font-size: 1rem; }
 
-/* Modals */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -531,7 +522,6 @@ button {
   to { transform: translate(-50%, 0); opacity: 1; }
 }
 
-/* Responsive */
 @media (max-width: 760px) {
   .game-layout { flex-direction: column; align-items: stretch; padding: 16px 14px 30px; }
   .side-panel { flex-direction: row; flex-wrap: wrap; }

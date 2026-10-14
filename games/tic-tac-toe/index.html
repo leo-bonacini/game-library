@@ -196,13 +196,12 @@
 </div>
 
 <script>
-  // Game state
   const HUMAN = 'X';
   const BOT = 'O';
 
   let board = Array(9).fill(null);
   let gameOver = false;
-  let boardLocked = false; // disables clicks while the bot is "thinking" or the game has ended
+  let boardLocked = false;
   let roundId = 0; // bumped on every restart so stale bot timers from a previous round are ignored
 
   const boardEl = document.getElementById('board');
@@ -215,16 +214,14 @@
   const startBtn = document.getElementById('startBtn');
   const newGameBtn = document.getElementById('newGameBtn');
 
-  let difficulty = 'medium'; // locked in from the setup screen when a round starts
+  let difficulty = 'medium';
 
-  // All possible winning combinations
   const WIN_LINES = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
     [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
     [0, 4, 8], [2, 4, 6]             // diagonals
   ];
 
-  // Build the board on screen
   function buildBoard() {
     boardEl.innerHTML = '';
     for (let i = 0; i < 9; i++) {
@@ -253,7 +250,6 @@
     });
   }
 
-  // Win / draw logic
   function checkWinner(b) {
     for (const line of WIN_LINES) {
       const [a, c, d] = line;
@@ -277,7 +273,6 @@
     statusEl.textContent = text;
   }
 
-  // Human move
   function onCellClick(e) {
     const index = Number(e.currentTarget.dataset.index);
     if (gameOver || boardLocked || board[index]) return;
@@ -291,7 +286,7 @@
     }
 
     setStatus('Bot thinking...');
-    boardLocked = true; // blocks clicks while the bot "thinks"
+    boardLocked = true;
     render();
     const thisRound = roundId;
     setTimeout(() => {
@@ -309,7 +304,6 @@
     setTimeout(() => cells[index].classList.remove('pop'), 180);
   }
 
-  // Bot turn
   function botTurn() {
     if (gameOver) return;
 
@@ -338,7 +332,6 @@
     setStatus("Player's turn (X)");
   }
 
-  // Easy bot: random valid move
   function getRandomMove(b) {
     const available = b
       .map((v, i) => (v === null ? i : null))
@@ -346,17 +339,13 @@
     return available[Math.floor(Math.random() * available.length)];
   }
 
-  // Medium bot: wins if possible, blocks if necessary, otherwise random
   function getMediumMove(b) {
-    // 1. Try to win
     const winMove = findWinningMove(b, BOT);
     if (winMove !== null) return winMove;
 
-    // 2. Block the player
     const blockMove = findWinningMove(b, HUMAN);
     if (blockMove !== null) return blockMove;
 
-    // 3. Play randomly
     return getRandomMove(b);
   }
 
@@ -372,7 +361,6 @@
     return null;
   }
 
-  // Hard bot: perfect Minimax
   function getBestMove(b) {
     let bestScore = -Infinity;
     let bestMove = null;
@@ -396,7 +384,7 @@
     if (result) {
       if (result.winner === BOT) return 10 - depth;
       if (result.winner === HUMAN) return depth - 10;
-      return 0; // draw
+      return 0;
     }
 
     if (isMaximizing) {
@@ -422,7 +410,6 @@
     }
   }
 
-  // End of game
   function endGame(result) {
     gameOver = true;
     newGameBtn.hidden = false;
@@ -431,7 +418,7 @@
     if (result.winner === 'draw') {
       setStatus("It's a draw!");
     } else if (result.winner === HUMAN) {
-      setStatus('You won! 🎉');
+      setStatus('You won!');
       highlightWin(result.line);
     } else {
       setStatus('The bot won!');
@@ -439,7 +426,6 @@
     }
   }
 
-  // Start a round from the setup screen
   function startRound() {
     roundId++; // invalidates any bot move still pending from the previous round
     board = Array(9).fill(null);
@@ -470,9 +456,8 @@
     }
   }
 
-  // Back to the setup screen
   function showSetup() {
-    roundId++; // invalidates any bot timer that may still be pending
+    roundId++;
     gameScreenEl.hidden = true;
     setupScreenEl.hidden = false;
     startBtn.focus();
@@ -481,7 +466,6 @@
   startBtn.addEventListener('click', startRound);
   newGameBtn.addEventListener('click', showSetup);
 
-  // Initialization
   buildBoard();
 </script>
 

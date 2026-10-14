@@ -1,7 +1,6 @@
 (function () {
   'use strict';
 
-  /* Constants */
   const DIFFICULTY_CLUES = { easy: 44, medium: 34, hard: 29, expert: 24 };
   const HINTS_LIMIT = 3;
   const STORAGE_KEYS = {
@@ -11,20 +10,16 @@
     RECENT_PUZZLES: 'sudoku.recent.v1'
   };
 
-  /* Utilities */
-  // Format seconds as mm:ss for timer and stats display.
   function formatTime(totalSeconds) {
     const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
     const s = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   }
 
-  // Capitalize the first letter of a difficulty name for display.
   function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
-  // Fisher-Yates shuffle, accepts a pluggable RNG for seeded (daily) puzzles.
   function shuffle(arr, rng) {
     const rand = rng || Math.random;
     for (let i = arr.length - 1; i > 0; i--) {
@@ -34,7 +29,7 @@
     return arr;
   }
 
-  // Deterministic PRNG so the daily challenge is identical for all players on a given date.
+  // Seeded so every player gets the same daily challenge.
   function mulberry32(seed) {
     let a = seed;
     return function () {
@@ -46,13 +41,11 @@
     };
   }
 
-  // Numeric seed derived from today's date (YYYYMMDD) for the daily challenge.
   function dateSeedToday() {
     const d = new Date();
     return Number(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`);
   }
 
-  /* Board */
   const Board = {
     rowOf(i) { return Math.floor(i / 9); },
     colOf(i) { return i % 9; },
@@ -62,7 +55,6 @@
     },
     indexOf(r, c) { return r * 9 + c; },
     createEmpty() { return new Array(81).fill(0); },
-    // All 20 cells sharing a row, column, or box with i (itself excluded).
     peersOf(i) {
       const r = Board.rowOf(i), c = Board.colOf(i);
       const set = new Set();
@@ -79,12 +71,9 @@
     }
   };
 
-  // Precomputed peer list per cell index; avoids recomputation on every render.
   const PEERS = Array.from({ length: 81 }, (_, i) => Board.peersOf(i));
 
-  /* Solver */
   const Solver = {
-    // Legal candidate digits for an empty cell given the current board.
     getCandidates(board, i) {
       const used = new Set();
       PEERS[i].forEach(p => { if (board[p]) used.add(board[p]); });
@@ -92,14 +81,12 @@
       for (let n = 1; n <= 9; n++) if (!used.has(n)) result.push(n);
       return result;
     },
-    // True if board[i]'s value duplicates a peer (row/column/box conflict).
     hasConflict(board, i) {
       const val = board[i];
       if (!val) return false;
       return PEERS[i].some(p => board[p] === val);
     },
-    // Backtracking solver; fills `board` in place. Randomized candidate order is
-    // used to generate varied full boards; deterministic order is used to verify solvability.
+    // Fills `board` in place. Random candidate order generates varied boards.
     solve(board, options) {
       const opts = options || {};
       const randomize = opts.randomize || false;
@@ -115,7 +102,7 @@
       }
       return false;
     },
-    // Counts solutions up to `limit`, stopping early. Used to guarantee puzzle uniqueness.
+    // Stops at `limit`; used to check the puzzle has a unique solution.
     countSolutions(board, limit) {
       const emptyIndex = board.indexOf(0);
       if (emptyIndex === -1) return 1;
@@ -129,7 +116,6 @@
       }
       return count;
     },
-    // Produces a fully solved, randomly shuffled 9x9 board.
     generateFullBoard(rng) {
       const board = Board.createEmpty();
       Solver.solve(board, { randomize: true, rng: rng || Math.random });
@@ -137,10 +123,8 @@
     }
   };
 
-  /* Generator */
   const Generator = {
-    // Removes digits one at a time, keeping a removal only if the puzzle
-    // still has exactly one solution. Guarantees a unique-solution puzzle.
+    // Keep a removal only if the puzzle still has exactly one solution.
     digHoles(solution, targetClues, rng) {
       const board = solution.slice();
       const indices = shuffle([...Array(81).keys()], rng);
@@ -159,8 +143,7 @@
       }
       return board;
     },
-    // Generates a full solved board plus a matching puzzle for the given difficulty,
-    // retrying if the puzzle was recently seen to avoid repeats.
+    // Retries if the puzzle was seen recently.
     generatePuzzle(difficulty) {
       let puzzle, solution, attempts = 0;
       do {
@@ -173,7 +156,6 @@
     }
   };
 
-  /* State */
   const state = {
     puzzle: null, solution: null, board: null, given: null, notes: null,
     difficulty: 'easy', isDaily: false, selected: null, inputMode: 'normal',
@@ -187,7 +169,6 @@
     autoSave: true, showTimer: true, highContrast: false
   };
 
-  /* UI */
   const UI = {
     boardEl: null, numberPadEl: null, cellEls: [], _toastHandle: null,
 
@@ -198,7 +179,6 @@
       UI.buildNumberPad();
     },
 
-    // Builds the 81 cell elements once; subsequent updates only touch their contents.
     buildBoard() {
       UI.boardEl.innerHTML = '';
       UI.cellEls = [];
@@ -250,7 +230,6 @@
       UI.updateProgress();
     },
 
-    // Refreshes a single cell's displayed value/notes/error state.
     renderCell(i) {
       const cell = UI.cellEls[i];
       const value = state.board[i];
@@ -282,7 +261,6 @@
       }
     },
 
-    // Recomputes selection/peer/same-number/candidate highlighting across the board.
     updateHighlights() {
       UI.cellEls.forEach(cell => {
         cell.classList.remove('selected', 'peer', 'same-number');
@@ -306,7 +284,6 @@
       }
     },
 
-    // Dims number-pad digits that already appear nine times on the board.
     updateNumberPadState() {
       const counts = new Array(10).fill(0);
       state.board.forEach(v => { if (v) counts[v]++; });
@@ -353,7 +330,6 @@
     }
   };
 
-  /* Storage */
   function serializeNotes(notesArr) { return notesArr.map(s => Array.from(s)); }
   function deserializeNotes(arr) { return arr.map(a => new Set(a)); }
   function serializeSnapshot(snap) {
@@ -431,7 +407,6 @@
     }
   };
 
-  /* Statistics */
   const Statistics = {
     data: null,
 
@@ -442,7 +417,6 @@
       Storage.saveStats(Statistics.data);
     },
 
-    // Records a win, updating totals and the per-difficulty best time. Returns true if it's a new best.
     recordWin(difficulty, timeSeconds, hintsUsed, mistakes) {
       const d = Statistics.data;
       d.gamesWon++;
@@ -477,7 +451,6 @@
     }
   };
 
-  /* Animations */
   const Animations = {
     confetti() {
       if (!settings.animations) return;
@@ -497,14 +470,12 @@
     }
   };
 
-  /* Settings */
   const Settings = {
     init() {
       Storage.loadSettings();
       Settings.applyToDOM();
     },
 
-    // Pushes the settings object's values onto the DOM (icons, checkboxes, visibility).
     applyToDOM() {
       document.body.classList.toggle('no-animations', !settings.animations);
       document.body.classList.toggle('high-contrast', settings.highContrast);
@@ -526,14 +497,12 @@
     save() { Storage.saveSettings(); }
   };
 
-  /* Sound */
   const Sound = {
     ctx: null,
     ensureCtx() {
       if (!Sound.ctx) Sound.ctx = new (window.AudioContext || window.webkitAudioContext)();
       return Sound.ctx;
     },
-    // Synthesizes short tones with the Web Audio API so no external audio files are needed.
     play(type) {
       if (!settings.sound) return;
       const ctx = Sound.ensureCtx();
@@ -553,7 +522,6 @@
     }
   };
 
-  /* Timer */
   const Timer = {
     start() {
       Timer.stop();
@@ -561,7 +529,7 @@
         if (!state.paused && state.gameActive) {
           state.elapsedSeconds++;
           Timer.render();
-          // Keep the saved elapsed time current even if the player hasn't moved recently.
+          // Save elapsed time even when the player is idle.
           if (state.elapsedSeconds % 5 === 0) Storage.saveGame();
         }
       }, 1000);
@@ -583,7 +551,6 @@
     }
   };
 
-  /* HISTORY (undo / redo) */
   const History = {
     snapshot() {
       return {
@@ -594,7 +561,7 @@
         hintsLeft: state.hintsLeft
       };
     },
-    // Call before any mutating action to record the pre-mutation state.
+    // Call before every change to the board.
     push() {
       state.undoStack.push(History.snapshot());
       if (state.undoStack.length > 200) state.undoStack.shift();
@@ -628,7 +595,6 @@
     }
   };
 
-  /* Input */
   const Input = {
     init() {
       document.addEventListener('keydown', Input.handleKeydown);
@@ -662,7 +628,6 @@
       History.push();
       state.board[i] = n;
       state.notes[i].clear();
-      // Auto-remove this candidate from notes of peers, since it's no longer possible there.
       PEERS[i].forEach(p => state.notes[p].delete(n));
 
       const correct = state.solution[i] === n;
@@ -697,7 +662,6 @@
       document.getElementById('btn-notes').classList.toggle('active', state.inputMode === 'notes');
     },
 
-    // Reveals the correct digit for the selected (or first empty) cell.
     useHint() {
       if (!state.gameActive || state.paused) return;
       if (state.hintsLeft <= 0) { UI.toast('No hints left'); return; }
@@ -720,7 +684,6 @@
       Input.checkVictory();
     },
 
-    // Flags any filled cell that doesn't match the solution, without revealing the answer.
     checkBoard() {
       let hasError = false;
       for (let i = 0; i < 81; i++) {
@@ -766,7 +729,6 @@
     }
   };
 
-  /* Puzzle export / import */
   const PuzzleIO = {
     exportString() {
       return state.puzzle.map(v => (v === 0 ? '.' : v)).join('');
@@ -789,7 +751,6 @@
     }
   };
 
-  /* Game orchestration */
   const Game = {
     newGame(difficulty) {
       const { puzzle, solution } = Generator.generatePuzzle(difficulty);
@@ -933,7 +894,6 @@
     }
   };
 
-  /* Menu */
   const Menu = {
     wasPausedBeforeMenu: false,
     open() {
@@ -950,12 +910,10 @@
     }
   };
 
-  /* Event binding */
   function bindEvents() {
     document.getElementById('btn-menu').addEventListener('click', Menu.open);
     document.getElementById('btn-menu-close').addEventListener('click', Menu.close);
 
-    // Clicking a modal's backdrop (not its content) dismisses it.
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', (e) => {
         if (e.target !== overlay) return;
@@ -1053,7 +1011,6 @@
     });
   }
 
-  /* Init */
   function initApp() {
     Settings.init();
     Statistics.init();
@@ -1065,6 +1022,6 @@
 
   document.addEventListener('DOMContentLoaded', initApp);
 
-  // Public hook for external tooling that drives the game headlessly.
+  // Used by external tooling to drive the game headlessly.
   window.__sudokuApi = { Game, state };
 })();

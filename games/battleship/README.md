@@ -1,4 +1,4 @@
-# ⚓ Battleship
+# Battleship
 
 A complete Battleship game in a single HTML file: pure HTML, CSS and JavaScript, with no external libraries. Place your fleet, then take turns against a bot with three difficulty levels.
 

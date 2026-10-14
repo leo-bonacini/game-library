@@ -25,7 +25,6 @@ if [[ -e "$dest" ]]; then
   exit 1
 fi
 
-# Escape values for sed replacement and for a double-quoted JS string.
 sed_escape() { printf '%s' "$1" | sed -e 's/[\\&|]/\\&/g'; }
 js_escape() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 

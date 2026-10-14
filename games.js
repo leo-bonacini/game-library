@@ -1,5 +1,4 @@
-// Game registry: the library page renders one card per entry.
-// scripts/new-game.sh adds new entries above the marker at the end of the list.
+// scripts/new-game.sh inserts new games above the @new-games marker.
 window.GAMES = [
   {
     slug: "tic-tac-toe",

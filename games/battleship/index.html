@@ -43,7 +43,6 @@
     margin: 0 -20px 20px;
   }
 
-  /* Status bar at the top: message + restart button */
   #status-panel {
     display: flex;
     align-items: center;
@@ -121,7 +120,6 @@
     background: var(--gl-accent-hover);
   }
 
-  /* Wraps the placement panel and the boards side by side */
   #game-area {
     display: flex;
     gap: 40px;
@@ -131,7 +129,6 @@
     width: 100%;
   }
 
-  /* Ship placement panel (left sidebar) */
   #placement-panel {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -202,7 +199,6 @@
     width: 100%;
   }
 
-  /* Fleet panels (sunk vs. remaining), beside the boards */
   .fleet-column {
     display: none; /* shown only during battle */
     background: var(--panel);
@@ -256,19 +252,16 @@
     display: block;
   }
 
-  /* Shared SVG ship artwork */
   .ship-hull {
     fill: url(#hullGradient);
   }
 
-  /* Dark details (island, turrets, bridge, submarine sail) */
   .ship-detail {
     fill: #263238;
     stroke: #90a4ae;
     stroke-width: 0.035;
   }
 
-  /* Line details (carrier runway, gun barrels, periscope, rudder) */
   .ship-line {
     stroke: #cfd8dc;
     stroke-width: 0.055;
@@ -284,7 +277,6 @@
   .ship-icon.sunk .ship-detail { fill: #100303; stroke: #4a1515; }
   .ship-icon.sunk .ship-line { stroke: #5a1a1a; }
 
-  /* Whole-ship drawing overlaid on the board (a single piece per ship) */
   .ship-overlay {
     position: absolute;
     z-index: 0;
@@ -353,7 +345,6 @@
     outline-offset: -2px;
   }
 
-  /* Bot board: clickable only during battle */
   #bot-board.battle-active .cell {
     cursor: pointer;
   }
@@ -362,15 +353,12 @@
     background: var(--water-hover);
   }
 
-  /* Cell that belongs to a ship: turned transparent so the SVG drawing
-     (.ship-overlay, below it in z-index) shows through. When the cell is
-     attacked, the .hit/.miss/.sunk rules (with !important) paint over it,
-     covering the drawing exactly at that point of the hull. */
+  /* Transparent so the ship overlay below shows through; .hit/.miss/.sunk
+     paint over it with !important once attacked. */
   .cell.ship {
     background: transparent;
   }
 
-  /* Placement board: cursor and preview */
   #player-board.placement-active .cell {
     cursor: pointer;
   }
@@ -402,7 +390,7 @@
     color: #fff;
   }
 
-  /* Translucent so the dark-red sunk hull drawing shows through the cells */
+  /* Translucent so the sunk hull shows through */
   .cell.sunk {
     background: rgba(8, 8, 8, 0.6) !important;
   }
@@ -412,7 +400,6 @@
     color: var(--hit);
   }
 
-  /* Subtle click animation */
   .cell.click-anim {
     animation: pop 0.25s ease;
   }
@@ -444,7 +431,6 @@
     color: var(--gl-muted);
   }
 
-  /* Smaller cells on narrow screens so the 10x10 board fits */
   @media (max-width: 480px) {
     :root { --cell-size: 30px; }
   }
@@ -476,36 +462,33 @@
 
 <div id="status-panel">
   <div id="status-message" role="status" aria-live="polite">Preparing the game...</div>
-  <button id="restart-btn">🔄 Restart Game</button>
+  <button id="restart-btn">Restart Game</button>
 </div>
 
-<!-- Difficulty picker: visible only outside of battle -->
 <div id="controls">
   <label for="difficulty">Bot difficulty:</label>
   <select id="difficulty">
-    <option value="easy">🟢 Easy</option>
-    <option value="medium" selected>🟡 Medium</option>
-    <option value="hard">🔴 Hard</option>
+    <option value="easy">Easy</option>
+    <option value="medium" selected>Medium</option>
+    <option value="hard">Hard</option>
   </select>
 </div>
 
 <div id="game-area">
-  <!-- Panel shown only during the ship placement phase, next to the board -->
   <div id="placement-panel">
-    <h2>🚢 Place Your Fleet</h2>
+    <h2>Place Your Fleet</h2>
     <div id="ship-queue"></div>
     <div id="placement-actions">
       <button id="rotate-btn">↻ Rotate (R)</button>
-      <button id="auto-place-btn">🎲 Auto Place</button>
-      <button id="clear-placement-btn">🗑️ Clear Board</button>
-      <button id="start-battle-btn" class="primary" disabled>⚔️ Start Battle</button>
+      <button id="auto-place-btn">Auto Place</button>
+      <button id="clear-placement-btn">Clear Board</button>
+      <button id="start-battle-btn" class="primary" disabled>Start Battle</button>
     </div>
     <a class="gl-back-link" href="../../index.html">← Back to library</a>
   </div>
 
-  <!-- Fleet panels flank the boards during battle -->
   <div class="fleet-column" id="player-fleet-column">
-    <h3>🧭 Your Fleet</h3>
+    <h3>Your Fleet</h3>
     <div id="player-fleet-list"></div>
   </div>
 
@@ -521,7 +504,7 @@
   </div>
 
   <div class="fleet-column" id="enemy-fleet-column">
-    <h3>🎯 Enemy Fleet</h3>
+    <h3>Enemy Fleet</h3>
     <div id="enemy-fleet-list"></div>
   </div>
 </div>
@@ -534,38 +517,33 @@
 (() => {
   'use strict';
 
-  // General settings
   const BOARD_SIZE = 10;
-  const SHIP_SIZES = [5, 4, 3, 3, 2]; // 1x5, 1x4, 2x3, 1x2
+  const SHIP_SIZES = [5, 4, 3, 3, 2];
   const SHIP_NAMES = { 5: 'Aircraft Carrier', 4: 'Battleship', 3: 'Cruiser', 2: 'Submarine' };
-  const BOT_MOVE_DELAY = 300; // ms
+  const BOT_MOVE_DELAY_MS = 300;
 
-  // Game state
-  let playerGrid, botGrid;      // logical cell matrices
-  let playerShips, botShips;    // ship lists { cells: [...], hits: 0, size, sunk }
-  let gamePhase = 'placement';  // 'placement' | 'battle' | 'over'
+  let playerGrid, botGrid;
+  let playerShips, botShips; // [{ cells, hits, size, sunk }]
+  let gamePhase = 'placement'; // 'placement' | 'battle' | 'over'
   let difficulty = 'medium';
-  let lastPlayerShotMsg = '';   // result of the player's last shot (shown together with the bot's)
+  let lastPlayerShotMsg = '';
 
-  // State specific to the placement phase
-  let shipQueue = [];           // remaining sizes to place
-  let orientation = 'H';        // 'H' (horizontal) or 'V' (vertical)
-  let lastHoverCell = null;     // last cell under the cursor (to redraw the preview when rotating)
-  let previewCells = [];        // cells currently highlighted as preview
-  let lastPointerType = 'mouse'; // 'mouse' | 'touch' | 'pen' | 'keyboard'
-  let touchPreviewCell = null;  // on touch there is no hover: first tap previews, second tap places
+  let shipQueue = [];
+  let orientation = 'H'; // 'H' | 'V'
+  let lastHoverCell = null; // to redraw the preview on rotate
+  let previewCells = [];
+  let lastPointerType = 'mouse';
+  let touchPreviewCell = null; // touch has no hover: first tap previews, second tap places
 
-  // Bot memory for the medium/hard modes
   let botMemory = {
     targetStack: [],   // stack of candidate cells to attack after a hit
     lastHit: null,
     huntDirection: null,
     firstHitOfCurrentShip: null,
     pendingHits: [],   // hits on ships not yet sunk (so a wounded ship is never abandoned)
-    triedCells: new Set() // cells already attacked by the bot (avoids repeats)
+    triedCells: new Set()
   };
 
-  // DOM references
   const playerBoardEl = document.getElementById('player-board');
   const botBoardEl = document.getElementById('bot-board');
   const botBoardWrapperEl = document.getElementById('bot-board-wrapper');
@@ -587,7 +565,6 @@
   const playerFleetListEl = document.getElementById('player-fleet-list');
   const enemyFleetListEl = document.getElementById('enemy-fleet-list');
 
-  // Utilities
   function createEmptyGrid() {
     return Array.from({ length: BOARD_SIZE }, () =>
       Array.from({ length: BOARD_SIZE }, () => ({
@@ -605,7 +582,6 @@
     return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
   }
 
-  // Returns the adjacent cells (up, down, left, right)
   function getAdjacentCells(r, c) {
     return [
       { r: r - 1, c }, { r: r + 1, c },
@@ -613,7 +589,6 @@
     ].filter(p => inBounds(p.r, p.c));
   }
 
-  // Automatic ship placement
   function placeShipsRandomly(grid, sizes = SHIP_SIZES) {
     // Attempt cap per ship: if a layout corners a ship, clear the board
     // and start over instead of getting stuck in a loop.
@@ -658,13 +633,12 @@
     }
   }
 
-  // Checks bounds and ensures no overlap and no touching another ship
   function canPlaceShip(grid, cells) {
     for (const { r, c } of cells) {
       if (!inBounds(r, c)) return false;
       if (grid[r][c].ship) return false;
 
-      // forbids adjacent ships (including diagonals) for a cleaner layout
+      // ships may not touch, not even diagonally
       for (let dr = -1; dr <= 1; dr++) {
         for (let dc = -1; dc <= 1; dc++) {
           const nr = r + dr, nc = c + dc;
@@ -675,7 +649,6 @@
     return true;
   }
 
-  // Generates the cells a ship would occupy from an anchor cell (left/top corner)
   function getCellsFromAnchor(row, col, size, orient) {
     const cells = [];
     for (let i = 0; i < size; i++) {
@@ -684,12 +657,11 @@
     return cells;
   }
 
-  // SVG ship artwork
   // Each ship type has its own drawing (top-down view), always defined
   // horizontally: x axis = length (0..length), y axis = beam (0..1).
   // The bow sits at x=length and the stern at x=0.
 
-  // Gun turret: circle with two barrels pointing toward "dir" (1 = bow, -1 = stern)
+  // dir: 1 = bow, -1 = stern
   function turretMarkup(t, dir, r = 0.16) {
     const tip = (t + dir * (r + 0.22)).toFixed(2);
     return `<line class="ship-line" x1="${t}" y1="0.44" x2="${tip}" y2="0.44" />` +
@@ -698,13 +670,11 @@
   }
 
   const SHIP_SHAPES = {
-    // Aircraft carrier: wide flat flight deck, dashed runway and side island
     5: () => `
       <path class="ship-hull" d="M 0.35,0.14 L 4.5,0.14 L 4.94,0.42 L 4.94,0.58 L 4.5,0.86 L 0.35,0.86 Q 0.06,0.5 0.35,0.14 Z" />
       <line class="ship-line" x1="0.55" y1="0.4" x2="4.55" y2="0.4" stroke-dasharray="0.24 0.16" />
       <rect class="ship-detail" x="2.5" y="0.58" width="0.95" height="0.24" rx="0.07" />
     `,
-    // Battleship: sturdy hull, two gun turrets, superstructure and funnel
     4: () => `
       <path class="ship-hull" d="M 0.06,0.5 Q 0.06,0.22 0.55,0.18 L 2.9,0.18 Q 3.55,0.25 3.94,0.5 Q 3.55,0.75 2.9,0.82 L 0.55,0.82 Q 0.06,0.78 0.06,0.5 Z" />
       ${turretMarkup(3.0, 1)}
@@ -712,20 +682,17 @@
       <rect class="ship-detail" x="1.4" y="0.32" width="1.05" height="0.36" rx="0.09" />
       <circle class="ship-line" cx="1.93" cy="0.5" r="0.08" />
     `,
-    // Cruiser: slender hull, one forward turret and a central bridge
     3: () => `
       <path class="ship-hull" d="M 0.06,0.5 Q 0.06,0.28 0.5,0.25 L 2.05,0.25 Q 2.6,0.3 2.94,0.5 Q 2.6,0.7 2.05,0.75 L 0.5,0.75 Q 0.06,0.72 0.06,0.5 Z" />
       ${turretMarkup(2.2, 1, 0.13)}
       <rect class="ship-detail" x="0.95" y="0.36" width="0.8" height="0.28" rx="0.07" />
     `,
-    // Submarine: capsule hull, stern rudder, central sail and periscope
     2: () => `
       <path class="ship-hull" d="M 0.05,0.5 Q 0.18,0.35 0.6,0.33 L 1.45,0.33 Q 1.95,0.37 1.95,0.5 Q 1.95,0.63 1.45,0.67 L 0.6,0.67 Q 0.18,0.65 0.05,0.5 Z" />
       <line class="ship-line" x1="0.2" y1="0.3" x2="0.2" y2="0.7" />
       <rect class="ship-detail" x="0.95" y="0.37" width="0.36" height="0.26" rx="0.11" />
       <line class="ship-line" x1="1.24" y1="0.37" x2="1.36" y2="0.24" />
     `,
-    // Generic shape for sizes outside the standard fleet
     default: (L) => {
       const wideAt = Math.min(L * 0.4, L - 0.9);
       const taperAt = Math.max(L - 0.6, L * 0.55);
@@ -751,9 +718,8 @@
     return `<svg class="ship-icon${extraClass ? ' ' + extraClass : ''}" viewBox="${viewBox}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
   }
 
-  // Draws the whole ship overlaid on the board (a single piece per ship,
-  // not one slice per cell). Must only be called with ships that may be
-  // revealed (the player's always; the enemy's only when sunk / game over).
+  // Only call for ships that may be revealed: the player's always, the
+  // enemy's only once sunk or at game over.
   function renderShipOverlays(boardEl, ships) {
     boardEl.querySelectorAll('.ship-overlay').forEach(el => el.remove());
 
@@ -777,15 +743,12 @@
     });
   }
 
-  // Board rendering
-  // Accessible cell name: coordinate in the A1..J10 format + current state
   function cellAriaLabel(r, c, cellData, revealShips) {
     const coord = `${String.fromCharCode(65 + r)}${c + 1}`;
     if (cellData.attacked) {
       if (cellData.ship) return `${coord}: ${cellData.ship.sunk ? 'sunk ship' : 'hit'}`;
       return `${coord}: miss`;
     }
-    // on revealed boards, tells screen readers where the ships are
     if (revealShips && cellData.ship) return `${coord}: ship`;
     return coord;
   }
@@ -837,21 +800,17 @@
     }
     cellEl.setAttribute('aria-label', cellAriaLabel(r, c, cellData, revealShips));
 
-    // subtle click animation
     cellEl.classList.remove('click-anim');
     void cellEl.offsetWidth; // forces a reflow to restart the animation
     cellEl.classList.add('click-anim');
   }
 
-  // Visually marks all cells of a ship as "sunk" once it goes down
   function refreshShipSunkState(boardEl, ship, grid, opts) {
     ship.cells.forEach(({ r, c }) => updateCellVisual(boardEl, r, c, grid, opts));
   }
 
-  // Fleet panel: sunk vs. remaining ships
-  // Hit progress (red blocks) stays hidden until the ship is fully sunk,
-  // so it never gives away which ship was hit. The rule applies equally
-  // to both sides (your fleet and the enemy fleet).
+  // Hits stay hidden until a ship sinks, so a hit never reveals which
+  // ship it belongs to. Same rule for both fleets.
   function renderFleetList(containerEl, ships) {
     containerEl.innerHTML = '';
     ships.forEach(ship => {
@@ -881,8 +840,6 @@
     renderFleetList(enemyFleetListEl, botShips);
   }
 
-  // Placement phase
-
   function enterPlacementPhase() {
     gamePhase = 'placement';
     playerGrid = createEmptyGrid();
@@ -910,7 +867,6 @@
   function renderShipQueue() {
     shipQueueEl.innerHTML = '';
 
-    // Fixed list of every ship in the fleet, marking the ones already placed
     const placedCount = SHIP_SIZES.length - shipQueue.length;
 
     SHIP_SIZES.forEach((size, i) => {
@@ -995,7 +951,7 @@
 
     const size = shipQueue[0];
     const cells = getCellsFromAnchor(row, col, size, orientation);
-    if (!canPlaceShip(playerGrid, cells)) return; // invalid position, ignore the click
+    if (!canPlaceShip(playerGrid, cells)) return;
 
     const ship = { cells, size, hits: 0, sunk: false };
     cells.forEach(({ r, c }) => { playerGrid[r][c].ship = ship; });
@@ -1065,9 +1021,8 @@
 
     gamePhase = 'battle';
     lastPlayerShotMsg = '';
-    controlsEl.style.display = 'none'; // difficulty is hidden once the battle starts
+    controlsEl.style.display = 'none';
 
-    // during battle the player's board is no longer interactive
     playerBoardEl.querySelectorAll('.cell').forEach(el => {
       el.tabIndex = -1;
       el.removeAttribute('role');
@@ -1084,16 +1039,13 @@
     setStatus('Your turn! Click the enemy board to attack.');
     setBoardsClickable(true);
 
-    // keyboard flow: continue on the board that is now the active one
     const firstCell = botBoardEl.querySelector('.cell');
     if (firstCell) firstCell.focus({ preventScroll: true });
   }
 
-  // Battle phase
-
   function attackCell(grid, ships, r, c) {
     const cellData = grid[r][c];
-    if (cellData.attacked) return null; // already attacked
+    if (cellData.attacked) return null;
 
     cellData.attacked = true;
 
@@ -1122,7 +1074,7 @@
     const r = Number(cellEl.dataset.row);
     const c = Number(cellEl.dataset.col);
 
-    if (botGrid[r][c].attacked) return; // cell already attacked, ignore
+    if (botGrid[r][c].attacked) return;
 
     const result = attackCell(botGrid, botShips, r, c);
     updateCellVisual(botBoardEl, r, c, botGrid, { revealShips: false });
@@ -1131,12 +1083,12 @@
       if (result.ship.sunk) {
         refreshShipSunkState(botBoardEl, result.ship, botGrid, { revealShips: false });
         renderShipOverlays(botBoardEl, botShips.filter(s => s.sunk));
-        lastPlayerShotMsg = `💥 You sank an enemy ship (size ${result.ship.size})!`;
+        lastPlayerShotMsg = `You sank an enemy ship (size ${result.ship.size})!`;
       } else {
-        lastPlayerShotMsg = '🎯 You hit an enemy ship!';
+        lastPlayerShotMsg = 'You hit an enemy ship!';
       }
     } else {
-      lastPlayerShotMsg = '🌊 You missed: water.';
+      lastPlayerShotMsg = 'You missed: water.';
     }
     setStatus(lastPlayerShotMsg);
 
@@ -1147,9 +1099,8 @@
       return;
     }
 
-    // bot's turn after a short delay
     setBoardsClickable(false);
-    setTimeout(botTurn, BOT_MOVE_DELAY);
+    setTimeout(botTurn, BOT_MOVE_DELAY_MS);
   }
 
   function botTurn() {
@@ -1164,10 +1115,8 @@
     if (result.hit) {
       if (result.ship.sunk) {
         refreshShipSunkState(playerBoardEl, result.ship, playerGrid, { revealShips: true });
-        // redraws the overlays so the sunk ship gets the dark-red hull
         renderShipOverlays(playerBoardEl, playerShips);
-        botMsg = `☠️ The bot sank your ship (size ${result.ship.size})!`;
-        // ship sunk: clear the hunt memory and the resolved hits
+        botMsg = `The bot sank your ship (size ${result.ship.size})!`;
         botMemory.targetStack = [];
         botMemory.lastHit = null;
         botMemory.huntDirection = null;
@@ -1176,11 +1125,11 @@
           h => !result.ship.cells.some(cell => cell.r === h.r && cell.c === h.c)
         );
       } else {
-        botMsg = '🔥 The bot hit your ship!';
+        botMsg = 'The bot hit your ship!';
         registerBotHit(r, c);
       }
     } else {
-      botMsg = '💧 The bot missed. Your turn!';
+      botMsg = 'The bot missed. Your turn!';
       // if it was in "direction" mode and missed, try the opposite direction from the first hit
       if (difficulty === 'hard' && botMemory.huntDirection && botMemory.firstHitOfCurrentShip) {
         const opposite = oppositeTargetFrom(botMemory.firstHitOfCurrentShip, botMemory.huntDirection);
@@ -1191,8 +1140,7 @@
       }
     }
 
-    // Shows the player's result and the bot's together, so the player's
-    // shot does not vanish from the screen when the bot responds
+    // Keep the player's result on screen next to the bot's reply
     setStatus(lastPlayerShotMsg ? `${lastPlayerShotMsg} · ${botMsg}` : botMsg);
 
     updateFleetStatus();
@@ -1223,7 +1171,6 @@
     botMemory.lastHit = { r, c };
 
     if (difficulty === 'medium') {
-      // add the neighbors as candidates
       getAdjacentCells(r, c).forEach(p => {
         if (!botMemory.triedCells.has(`${p.r},${p.c}`)) {
           botMemory.targetStack.push(p);
@@ -1231,7 +1178,6 @@
       });
     } else if (difficulty === 'hard') {
       if (botMemory.huntDirection) {
-        // keep going in the detected direction
         const next = {
           r: r + botMemory.huntDirection.dr,
           c: c + botMemory.huntDirection.dc
@@ -1308,7 +1254,6 @@
     return { r, c };
   }
 
-  // Game flow control
   function setStatus(message) {
     statusMessageEl.textContent = message;
   }
@@ -1321,24 +1266,22 @@
   function endGame(playerWon) {
     gamePhase = 'over';
     setBoardsClickable(false);
-    controlsEl.style.display = 'flex'; // free to pick a difficulty for the next game
+    controlsEl.style.display = 'flex';
 
-    // reveals all of the bot's ships at the end
     renderBoard(botBoardEl, botGrid, { revealShips: true });
     renderShipOverlays(botBoardEl, botShips);
 
     if (playerWon) {
-      gameOverBannerEl.textContent = '🏆 Victory! You sank the entire enemy fleet!';
+      gameOverBannerEl.textContent = 'Victory! You sank the entire enemy fleet!';
       gameOverBannerEl.className = 'win';
       setStatus('Game over: you won!');
     } else {
-      gameOverBannerEl.textContent = '💀 Defeat! Your fleet was destroyed.';
+      gameOverBannerEl.textContent = 'Defeat! Your fleet was destroyed.';
       gameOverBannerEl.className = 'lose';
       setStatus('Game over: the bot won!');
     }
   }
 
-  // Initialization / restart
   function startNewGame() {
     difficulty = difficultySelect.value;
     gameOverBannerEl.textContent = '';
@@ -1346,7 +1289,6 @@
     enterPlacementPhase();
   }
 
-  // Listeners
   botBoardEl.addEventListener('click', handlePlayerAttack);
 
   playerBoardEl.addEventListener('mouseover', handlePlacementHover);
@@ -1369,8 +1311,7 @@
     lastPointerType = e.pointerType || 'mouse';
   }, true);
 
-  // Accessibility: Enter/Space activate the focused cell like a click,
-  // and moving focus with the keyboard also shows the placement preview
+  // Enter/Space act as a click; keyboard focus also shows the placement preview
   function handleCellKeydown(e) {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     const cellEl = e.target.closest('.cell');
@@ -1387,14 +1328,12 @@
 
   restartBtn.addEventListener('click', startNewGame);
 
-  // The selector is hidden during battle, so a change here can only happen
-  // before the battle starts; it never restarts the game (only the button does)
+  // Only reachable before the battle (the selector is hidden during it)
   difficultySelect.addEventListener('change', () => {
     difficulty = difficultySelect.value;
   });
 
-  // Repositions the ship overlays when the layout changes (the cell size
-  // shrinks on narrow screens, so the pixel offsets need to be recomputed)
+  // Cell size changes on narrow screens, so overlay offsets must be recomputed
   window.addEventListener('resize', () => {
     if (playerShips) renderShipOverlays(playerBoardEl, playerShips);
     if (gamePhase === 'battle') {
@@ -1404,7 +1343,6 @@
     }
   });
 
-  // Start
   startNewGame();
 })();
 </script>

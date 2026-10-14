@@ -1,5 +1,4 @@
-/* Shared look for the library and every game: design tokens, base styles, and the top bar.
-   Games build their own variables on top of the --gl-* tokens instead of hardcoding colors. */
+/* Tokens and top bar shared by the library and every game */
 
 :root {
   --gl-bg: #f4f5fa;
@@ -54,7 +53,7 @@ body {
   font-family: var(--gl-font);
 }
 
-/* Top bar injected by layout.js: back link · game title · actions + theme toggle */
+/* Top bar (added by layout.js) */
 .gl-bar {
   position: sticky;
   top: 0;
@@ -111,7 +110,7 @@ body {
   outline: 2px solid var(--gl-accent); outline-offset: 2px;
 }
 
-/* "Back to library" link for a game's start/selection screen */
+/* Link on start screens that cover the bar */
 .gl-back-link {
   display: block;
   width: fit-content;

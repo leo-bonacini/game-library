@@ -505,17 +505,16 @@
 <script>
 "use strict";
 
-/* Constants */
 const COLORS = ["red","green","yellow","blue"];
 const COLOR_HEX = { red:"#e6483f", green:"#2fb861", yellow:"#f4c11f", blue:"#3186f2" };
-let humanColor = "red"; // chosen on the start screen
+let humanColor = "red";
 const TOKENS_PER_PLAYER = 4;
 const RING_LENGTH = 52;
 const HOME_COLUMN_LENGTH = 6;
-const STEPS_TO_FINISH = RING_LENGTH - 1 + HOME_COLUMN_LENGTH; // 57
+const STEPS_TO_FINISH = RING_LENGTH - 1 + HOME_COLUMN_LENGTH;
 const STEP_ANIM_MS = 220;
 const BOT_THINK_MS = 550;
-const DICE_HOLD_MS = 900; // how long the settled dice value stays fully visible before anything else advances
+const DICE_HOLD_MS = 900; // how long the rolled value stays on screen
 
 // Rotate a [row,col] pair 90deg clockwise around the 15x15 board center.
 function rot([r,c]){ return [c, 14 - r]; }
@@ -530,7 +529,7 @@ const RED_SEGMENT = [[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6]
 const RED_HOME_COL = [[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]];
 
 const SEGMENTS = [RED_SEGMENT, rotateAll(RED_SEGMENT,1), rotateAll(RED_SEGMENT,2), rotateAll(RED_SEGMENT,3)];
-const PATH = [].concat(...SEGMENTS); // 52 shared ring cells, in travel order starting at Red's start square
+const PATH = [].concat(...SEGMENTS); // shared ring, starting at Red's start square
 
 const HOME_COLUMNS = {
   red: RED_HOME_COL,
@@ -557,7 +556,6 @@ const DICE_PIPS = {
   1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8]
 };
 
-/* Utilities */
 function rand(n){ return Math.floor(Math.random()*n); }
 function rollDie(){ return 1 + rand(6); }
 function wait(ms){
@@ -580,7 +578,6 @@ function fmtTime(ms){
 }
 function otherColors(color){ return COLORS.filter(c=>c!==color); }
 
-/* Audio (Web Audio API, no external files) */
 const Sound = (() => {
   let ctx = null;
   let on = true;
@@ -619,7 +616,6 @@ const Sound = (() => {
   };
 })();
 
-/* Game state */
 let state = null;
 
 function freshState(){
@@ -651,9 +647,8 @@ function freshState(){
 
 function currentPlayer(){ return state.players[state.currentIdx]; }
 
-/* Board generation & rendering */
 const boardEl = document.getElementById("board");
-const tokenEls = {}; // key "color-id" -> element
+const tokenEls = {}; // "color-id" -> element
 
 function coordPercent(r,c){
   return { left: ((c+0.5)/15*100)+"%", top: ((r+0.5)/15*100)+"%" };
@@ -662,7 +657,6 @@ function coordPercent(r,c){
 function buildBoard(){
   boardEl.innerHTML = "";
 
-  // Yard blocks
   const yardAreas = {
     red:[1,1], green:[1,10], yellow:[10,10], blue:[10,1]
   };
@@ -681,7 +675,6 @@ function buildBoard(){
     boardEl.appendChild(yard);
   });
 
-  // Ring path cells
   PATH.forEach(([r,c], idx)=>{
     const cell = el("div","cell");
     cell.style.gridRow = `${r+1}/${r+2}`;
@@ -693,7 +686,6 @@ function buildBoard(){
     boardEl.appendChild(cell);
   });
 
-  // Home column cells
   COLORS.forEach(color=>{
     HOME_COLUMNS[color].forEach(([r,c])=>{
       const cell = el("div", `cell home-${color}`);
@@ -703,7 +695,6 @@ function buildBoard(){
     });
   });
 
-  // Center finish box (rows6-8, cols6-8)
   const center = el("div","center-box");
   center.style.gridRow = "7/10";
   center.style.gridColumn = "7/10";
@@ -715,7 +706,6 @@ function buildBoard(){
   center.appendChild(star);
   boardEl.appendChild(center);
 
-  // Tokens
   COLORS.forEach(color=>{
     for(let id=0; id<TOKENS_PER_PLAYER; id++){
       const t = el("div", `token token-${color}`);
@@ -787,7 +777,6 @@ function renderTokens(){
   });
 }
 
-/* Rules / movement */
 function blockAt(color, absIdx){
   // true if an opposing color has 2+ tokens stacked on this ring cell (uncapturable, blocks landing)
   for(const p of state.players){
@@ -801,7 +790,7 @@ function blockAt(color, absIdx){
 function computeLegalMoves(player, diceVal){
   const moves = [];
   player.tokens.forEach(token=>{
-    if(token.steps === STEPS_TO_FINISH) return; // already finished
+    if(token.steps === STEPS_TO_FINISH) return;
     if(token.steps === -1){
       if(diceVal===6){
         const absIdx = START_OFFSET[player.color];
@@ -810,7 +799,7 @@ function computeLegalMoves(player, diceVal){
       return;
     }
     const newSteps = token.steps + diceVal;
-    if(newSteps > STEPS_TO_FINISH) return; // overshoot, illegal
+    if(newSteps > STEPS_TO_FINISH) return; // overshoot
     if(newSteps <= 50){
       const absIdx = (START_OFFSET[player.color] + newSteps) % RING_LENGTH;
       if(blockAt(player.color, absIdx)) return;
@@ -841,7 +830,6 @@ function totalProgress(player, overrideTokenId, overrideSteps){
   },0);
 }
 
-/* Bot logic (deterministic weighted heuristic, no search/learning) */
 function scoreMove(player, move){
   const token = player.tokens.find(t=>t.id===move.tokenId);
   const oldSteps = token.steps;
@@ -887,7 +875,6 @@ function botChooseMove(player, moves){
   return best;
 }
 
-/* Animation */
 async function animateMove(player, move){
   const token = player.tokens.find(t=>t.id===move.tokenId);
   const node = tokenEls[`${token.color}-${token.id}`];
@@ -919,7 +906,6 @@ async function animateCapture(token){
   renderTokens();
 }
 
-/* Statistics + rendering (players / dice / log / stats) */
 const playersEl = document.getElementById("players");
 const diceHistoryEl = document.getElementById("diceHistory");
 const logEl = document.getElementById("log");
@@ -1022,7 +1008,6 @@ function renderAll(){
   renderTurnStrip();
 }
 
-/* Turn manager */
 async function rollDiceAction(){
   if(state.phase!=="rolling" || state.gameOver) return;
   const player = currentPlayer();
@@ -1053,10 +1038,10 @@ async function rollDiceAction(){
   if(value===6){ state.stats.sixes++; state.consecutiveSixes++; } else state.consecutiveSixes = 0;
 
   addLog(`${label(player)} rolled a ${value}.`);
-  await wait(DICE_HOLD_MS); // give the player time to actually read the number before anything else happens
+  await wait(DICE_HOLD_MS);
 
   if(state.consecutiveSixes===3){
-    addLog(`${label(player)} rolled three sixes in a row — turn forfeited.`);
+    addLog(`${label(player)} rolled three sixes in a row and loses the turn.`);
     state.consecutiveSixes = 0;
     await advanceTurn(false);
     return;
@@ -1161,7 +1146,7 @@ async function advanceTurn(sameTurn){
     return;
   }
 
-  state.undoSnapshot = null; // undo window closes once turn passes on
+  state.undoSnapshot = null;
   let next = state.currentIdx;
   do{
     next = (next+1) % state.players.length;
@@ -1201,10 +1186,9 @@ function endGame(){
   showWinnerOverlay();
 }
 
-/* Human input */
 function onTokenClick(e){
   const node = e.currentTarget;
-  if(!node.classList.contains("legal")) return; // ignore invalid clicks
+  if(!node.classList.contains("legal")) return;
   if(state.phase!=="moving" || !currentPlayer().isHuman) return;
   const color = node.dataset.color, id = Number(node.dataset.id);
   const move = state.legalMoves.find(m=>m.tokenId===id && color===currentPlayer().color);
@@ -1260,7 +1244,6 @@ document.addEventListener("keydown", (e)=>{
   }
 });
 
-/* Winner overlay / sound toggle */
 const winnerOverlay = document.getElementById("winnerOverlay");
 function showWinnerOverlay(){
   const ranked = [...state.players].sort((a,b)=>a.finishRank-b.finishRank);
@@ -1269,7 +1252,7 @@ function showWinnerOverlay(){
   rankDiv.innerHTML = "";
   ranked.forEach((p,i)=>{
     const row = el("div");
-    row.innerHTML = `<span class="p-dot" style="background:${COLOR_HEX[p.color]}"></span> ${["1st","2nd","3rd","4th"][i]} — ${label(p)}`;
+    row.innerHTML = `<span class="p-dot" style="background:${COLOR_HEX[p.color]}"></span> ${["1st","2nd","3rd","4th"][i]}: ${label(p)}`;
     rankDiv.appendChild(row);
   });
   winnerOverlay.classList.add("show");
@@ -1282,7 +1265,6 @@ soundBtn.addEventListener("click", ()=>{
   soundBtn.textContent = Sound.isOn() ? "🔊" : "🔈";
 });
 
-/* START SCREEN (color selection) */
 const startOverlay = document.getElementById("startOverlay");
 function showStartOverlay(){ startOverlay.classList.add("show"); }
 function hideStartOverlay(){ startOverlay.classList.remove("show"); }
@@ -1305,7 +1287,6 @@ COLORS.forEach(color=>{
   colorGrid.appendChild(card);
 });
 
-/* Game start / reset */
 let durationInterval = null;
 function startGame(isNewGame){
   state = freshState();

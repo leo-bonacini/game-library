@@ -1,4 +1,4 @@
-# 🕹️ Game Library
+# Game Library
 
 A collection of browser games in one repository. Every game is plain HTML, CSS and JavaScript: no frameworks, no build step, no installation.
 

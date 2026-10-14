@@ -1,9 +1,5 @@
-// Shared layout for the library and every game.
-// Load it in <head> so the saved theme is applied before the first paint:
-//   <script src="../../games.js"></script>
-//   <script src="../../shared/layout.js" data-game="<slug>"></script>
-// It adds the top bar (back link, game title, theme toggle) at the start of <body>.
-// Elements marked with data-gl-action are moved into the bar, next to the theme toggle.
+// Top bar and theme shared by the library and every game. Load it in <head>
+// so the saved theme applies before the first paint. See README.md.
 (function () {
   const STORAGE_KEY = "gl-theme";
   const script = document.currentScript;
@@ -41,7 +37,7 @@
   if (darkQuery && darkQuery.addEventListener) {
     darkQuery.addEventListener("change", () => { if (!savedTheme()) applyTheme(systemTheme()); });
   }
-  // Keep other open library/game tabs in sync.
+  // Sync other open tabs
   window.addEventListener("storage", (e) => {
     if (e.key === STORAGE_KEY) applyTheme(e.newValue || systemTheme());
   });

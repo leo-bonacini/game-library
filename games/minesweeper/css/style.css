@@ -1,4 +1,3 @@
-/* Reset & base */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
@@ -16,7 +15,6 @@ body {
 button { font-family: inherit; cursor: pointer; }
 input, select { font-family: inherit; }
 
-/* Theme variables, built on the shared library tokens (shared/theme.css) */
 body {
   --bg-gradient: var(--gl-bg);
   --panel-bg: var(--gl-surface);
@@ -38,7 +36,6 @@ body {
   --cell-revealed: #171a25;
 }
 
-/* High contrast overrides */
 body.high-contrast {
   --text-secondary: var(--text-primary);
   --panel-border: currentColor;
@@ -46,7 +43,6 @@ body.high-contrast {
 body.high-contrast .cell.revealed { outline: 1px solid var(--text-primary); }
 body.high-contrast .cell.hidden-cell { outline: 1px solid var(--text-primary); }
 
-/* Layout */
 .app {
   max-width: 960px;
   margin: 0 auto;
@@ -71,7 +67,6 @@ body.high-contrast .cell.hidden-cell { outline: 1px solid var(--text-primary); }
   padding: 14px 20px;
   box-shadow: var(--shadow);
 }
-
 
 .hud { display: flex; align-items: center; gap: 14px; }
 .hud-stat {
@@ -127,7 +122,6 @@ body.high-contrast .cell.hidden-cell { outline: 1px solid var(--text-primary); }
   outline-offset: 2px;
 }
 
-/* Board */
 .board-viewport {
   position: relative;
   display: flex;
@@ -204,7 +198,6 @@ body[data-cell-size="large"] .board { --cell-size: 42px; }
 
 .cell.hint-pulse { animation: hint-pulse 1.1s ease; }
 
-/* Overlays / modals */
 .overlay {
   position: absolute; inset: 0;
   background: var(--gl-overlay);
@@ -250,7 +243,6 @@ body[data-cell-size="large"] .board { --cell-size: 42px; }
 #result-overlay.victory .overlay-card { box-shadow: 0 0 40px var(--success); }
 #result-overlay.defeat .overlay-card { box-shadow: 0 0 40px var(--danger); }
 
-/* Action bar & footer */
 .action-bar {
   display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
 }
@@ -268,7 +260,6 @@ body[data-cell-size="large"] .board { --cell-size: 42px; }
 .stats-strip { display: flex; gap: 16px; flex-wrap: wrap; }
 .stats-strip strong { color: var(--text-primary); }
 
-/* Settings panel */
 .settings-panel {
   position: fixed; inset: 0;
   background: var(--gl-overlay);
@@ -322,7 +313,6 @@ body[data-cell-size="large"] .board { --cell-size: 42px; }
 .stat-value { font-weight: 800; font-size: 1.05rem; }
 .stat-label { font-size: 0.7rem; color: var(--text-secondary); }
 
-/* Particles & effects */
 .particle-layer {
   position: fixed; inset: 0; pointer-events: none; z-index: 80; overflow: hidden;
 }
@@ -382,7 +372,6 @@ body[data-cell-size="large"] .board { --cell-size: 42px; }
   to { opacity: 1; }
 }
 
-/* Animation speed multipliers */
 body[data-anim-speed="slow"] .cell,
 body[data-anim-speed="slow"] .board.shake,
 body[data-anim-speed="slow"] .overlay { animation-duration: 1.6s; transition-duration: 0.3s; }
@@ -390,7 +379,6 @@ body[data-anim-speed="fast"] .cell,
 body[data-anim-speed="fast"] .overlay { transition-duration: 0.07s; }
 body[data-anim-speed="fast"] .cell.pop-in { animation-duration: 0.08s; }
 
-/* Reduced motion */
 body.reduced-motion *,
 body.reduced-motion *::before,
 body.reduced-motion *::after {
@@ -402,7 +390,6 @@ body.reduced-motion *::after {
   * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
 
-/* Responsive */
 @media (max-width: 640px) {
   .app-header { flex-direction: column; align-items: stretch; }
   .hud { justify-content: center; }
