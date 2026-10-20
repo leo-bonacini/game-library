@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2048</title>
+  <link rel="stylesheet" href="../../shared/theme.css">
+  <script src="../../games.js"></script>
+  <script src="../../shared/layout.js" data-game="2048"></script>
+  <style>
+    :root {
+      --board: #bfb3a6;
+      --cell: #d6ccc1;
+      --tile-fg: #6b625a;
+      --tile-fg-light: #fffaf3;
+      --t2: #f3ece4;
+      --t4: #efe2cc;
+      --t8: #f5b57f;
+      --t16: #f69a68;
+      --t32: #f57f5f;
+      --t64: #f2603f;
+      --t128: #eed27a;
+      --t256: #ecce66;
+      --t512: #eaca52;
+      --t1024: #e8c540;
+      --t2048: #e6c02c;
+      --t-super: #3d3a35;
+    }
+
+    :root[data-theme="dark"] {
+      --board: #2a2722;
+      --cell: #38342e;
+      --tile-fg: #efe6da;
+      --tile-fg-light: #fffaf3;
+      --t2: #4a443c;
+      --t4: #585040;
+      --t8: #b8693a;
+      --t16: #c45a35;
+      --t32: #cc4a35;
+      --t64: #d2382a;
+      --t128: #c9a83e;
+      --t256: #cfa935;
+      --t512: #d4aa2c;
+      --t1024: #d9aa22;
+      --t2048: #e0ae17;
+      --t-super: #f2efe9;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app {
+      width: min(500px, 100%);
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .stat span {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gl-muted);
+    }
+
+    .stat strong {
+      font-size: 1.25rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .gain {
+      position: absolute;
+      top: 6px;
+      right: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--gl-success);
+      pointer-events: none;
+      animation: rise 0.7s ease-out forwards;
+    }
+
+    @keyframes rise {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-18px); }
+    }
+
+    .icon-btn {
+      width: 48px;
+      align-self: stretch;
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      font: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .icon-btn:hover:not(:disabled) { background: var(--gl-surface-2); }
+    .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .board {
+      --size: 4;
+      --gap: 10px;
+      --cell-size: calc((100% - var(--gap) * (var(--size) + 1)) / var(--size));
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      padding: var(--gap);
+      display: grid;
+      grid-template-columns: repeat(var(--size), 1fr);
+      grid-template-rows: repeat(var(--size), 1fr);
+      gap: var(--gap);
+      background: var(--board);
+      border-radius: var(--gl-radius);
+      box-shadow: var(--gl-shadow);
+      container-type: inline-size;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .cell {
+      background: var(--cell);
+      border-radius: 8px;
+    }
+
+    .tile {
+      --r: 0;
+      --c: 0;
+      position: absolute;
+      left: calc(var(--gap) + var(--c) * (var(--cell-size) + var(--gap)));
+      top: calc(var(--gap) + var(--r) * (var(--cell-size) + var(--gap)));
+      width: var(--cell-size);
+      height: var(--cell-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: var(--t-super);
+      color: var(--tile-fg-light);
+      font-weight: 800;
+      font-size: calc(44cqw / var(--size));
+      font-variant-numeric: tabular-nums;
+      transition: left 0.1s ease-in-out, top 0.1s ease-in-out;
+    }
+
+    :root[data-theme="dark"] .tile.super { color: #2a2722; }
+
+    .tile[data-digits="3"] { font-size: calc(36cqw / var(--size)); }
+    .tile[data-digits="4"] { font-size: calc(28cqw / var(--size)); }
+    .tile[data-digits="5"], .tile[data-digits="6"] { font-size: calc(22cqw / var(--size)); }
+
+    .tile[data-value="2"] { background: var(--t2); color: var(--tile-fg); }
+    .tile[data-value="4"] { background: var(--t4); color: var(--tile-fg); }
+    .tile[data-value="8"] { background: var(--t8); }
+    .tile[data-value="16"] { background: var(--t16); }
+    .tile[data-value="32"] { background: var(--t32); }
+    .tile[data-value="64"] { background: var(--t64); }
+    .tile[data-value="128"] { background: var(--t128); }
+    .tile[data-value="256"] { background: var(--t256); }
+    .tile[data-value="512"] { background: var(--t512); }
+    .tile[data-value="1024"] { background: var(--t1024); }
+    .tile[data-value="2048"] { background: var(--t2048); box-shadow: 0 0 18px 2px var(--t2048); }
+
+    .tile.new { animation: appear 0.15s ease-out 0.1s backwards; }
+    .tile.merged { z-index: 1; animation: pop 0.18s ease-out 0.1s backwards; }
+
+    @keyframes appear {
+      from { transform: scale(0); }
+      to { transform: scale(1); }
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0); }
+      60% { transform: scale(1.14); }
+      100% { transform: scale(1); }
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: var(--gl-overlay);
+      border-radius: var(--gl-radius);
+    }
+
+    .overlay[hidden] { display: none; }
+
+    .card {
+      width: min(320px, 100%);
+      padding: 24px;
+      text-align: center;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius);
+      box-shadow: var(--gl-shadow);
+    }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 1.3rem;
+    }
+
+    .card p {
+      margin: 0 0 16px;
+      color: var(--gl-muted);
+      font-size: 0.9rem;
+    }
+
+    .option {
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .option-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gl-muted);
+    }
+
+    .segmented {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--gl-surface-2);
+      border-radius: var(--gl-radius-sm);
+    }
+
+    .segmented button {
+      flex: 1;
+      padding: 8px 6px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--gl-muted);
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .btn {
+      width: 100%;
+      margin-top: 6px;
+      padding: 11px 18px;
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: var(--gl-surface-2); }
+    .btn[hidden] { display: none; }
+
+    .btn.primary {
+      border-color: var(--gl-accent);
+      background: var(--gl-accent);
+      color: var(--gl-accent-fg);
+    }
+
+    .btn.primary:hover { background: var(--gl-accent-hover); }
+
+    .btn:focus-visible, .segmented button:focus-visible, .icon-btn:focus-visible {
+      outline: 2px solid var(--gl-accent);
+      outline-offset: 2px;
+    }
+
+    .final-score {
+      margin: 4px 0 2px;
+      font-size: 2.6rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .new-best { color: var(--gl-success); font-weight: 700; }
+
+    .hint {
+      margin: 0;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--gl-muted);
+    }
+
+    kbd {
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: var(--gl-surface-2);
+      font-family: inherit;
+    }
+
+    .touch-hint { display: none; }
+
+    @media (pointer: coarse) {
+      .key-hint { display: none; }
+      .touch-hint { display: inline; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="hud">
+      <div class="stat" id="score-stat"><span>Score</span><strong id="score">0</strong></div>
+      <div class="stat"><span>Best</span><strong id="best">0</strong></div>
+      <button class="icon-btn" id="undo-btn" aria-label="Undo" title="Undo (U)" disabled>↶</button>
+      <button class="icon-btn" id="new-btn" aria-label="New game" title="New game (N)">↻</button>
+    </div>
+
+    <div class="board" id="board" role="application" aria-label="2048 board" aria-describedby="status">
+      <div class="overlay" id="start-screen" hidden>
+        <div class="card">
+          <h2>2048</h2>
+          <p>Slide the tiles. Two tiles with the same number merge into one. Reach 2048!</p>
+          <div class="option">
+            <span class="option-label" id="size-label">Board</span>
+            <div class="segmented" id="size" role="group" aria-labelledby="size-label">
+              <button type="button" data-value="3">3×3</button>
+              <button type="button" data-value="4">4×4</button>
+              <button type="button" data-value="5">5×5</button>
+              <button type="button" data-value="6">6×6</button>
+            </div>
+          </div>
+          <button class="btn primary" id="start-btn">Start</button>
+          <button class="btn" id="cancel-btn" hidden>Back to game</button>
+          <a class="gl-back-link" href="../../index.html">← Back to library</a>
+        </div>
+      </div>
+
+      <div class="overlay" id="win-screen" hidden>
+        <div class="card">
+          <h2>You made 2048!</h2>
+          <div class="final-score" id="win-score">0</div>
+          <p>Keep going for a bigger tile, or start over.</p>
+          <button class="btn primary" id="continue-btn">Keep going</button>
+          <button class="btn" id="win-new-btn">New game</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="over-screen" hidden>
+        <div class="card">
+          <h2>No more moves</h2>
+          <div class="final-score" id="final-score">0</div>
+          <p id="over-detail"></p>
+          <button class="btn primary" id="again-btn">New game</button>
+          <button class="btn" id="over-undo-btn">Undo last move</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint" id="status" aria-live="polite">
+      <span class="key-hint"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to slide · <kbd>U</kbd> to undo</span>
+      <span class="touch-hint">Swipe on the board to slide the tiles</span>
+    </p>
+  </main>
+
+  <script>
+  (function () {
+    const MOVE_MS = 100;
+    const MAX_UNDO = 20;
+    const GOAL = 2048;
+    const GAPS = { 3: 12, 4: 10, 5: 8, 6: 7 };
+    const DIRS = {
+      up: { x: 0, y: -1 },
+      down: { x: 0, y: 1 },
+      left: { x: -1, y: 0 },
+      right: { x: 1, y: 0 },
+    };
+    const KEYS = {
+      ArrowUp: "up", KeyW: "up",
+      ArrowDown: "down", KeyS: "down",
+      ArrowLeft: "left", KeyA: "left",
+      ArrowRight: "right", KeyD: "right",
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const boardEl = $("board");
+    const startScreen = $("start-screen");
+    const winScreen = $("win-screen");
+    const overScreen = $("over-screen");
+    const undoBtn = $("undo-btn");
+
+    function load(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw === null ? fallback : JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    }
+
+    function save(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    }
+
+    const settings = Object.assign({ size: "4" }, load("2048.settings", {}));
+    const bestKey = () => `2048.best.${size}`;
+
+    let size, grid, score, won, keepGoing, history;
+    let status = "menu"; // menu | playing | won | over
+    let nextId = 1;
+    const tileEls = new Map();
+
+    function emptyCells() {
+      const cells = [];
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) if (!grid[r][c]) cells.push({ r, c });
+      }
+      return cells;
+    }
+
+    function addRandomTile() {
+      const cells = emptyCells();
+      if (!cells.length) return;
+      const { r, c } = cells[Math.floor(Math.random() * cells.length)];
+      grid[r][c] = { id: nextId++, value: Math.random() < 0.9 ? 2 : 4, isNew: true };
+    }
+
+    function snapshot() {
+      return { values: grid.map((row) => row.map((t) => (t ? t.value : 0))), score };
+    }
+
+    function restore(values) {
+      grid = values.map((row) => row.map((v) => (v ? { id: nextId++, value: v } : null)));
+    }
+
+    function saveGame() {
+      save("2048.game", { size, values: snapshot().values, score, won, keepGoing, over: status === "over" });
+    }
+
+    function setupBoard() {
+      boardEl.style.setProperty("--size", size);
+      boardEl.style.setProperty("--gap", `${GAPS[size]}px`);
+      boardEl.querySelectorAll(".cell, .tile").forEach((el) => el.remove());
+      tileEls.clear();
+      const first = boardEl.firstChild;
+      for (let i = 0; i < size * size; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        boardEl.insertBefore(cell, first);
+      }
+    }
+
+    function newGame() {
+      size = Number(settings.size);
+      grid = Array.from({ length: size }, () => Array(size).fill(null));
+      score = 0;
+      won = false;
+      keepGoing = false;
+      history = [];
+      setupBoard();
+      addRandomTile();
+      addRandomTile();
+      status = "playing";
+      show(null);
+      render();
+      saveGame();
+    }
+
+    function resumeGame(saved) {
+      size = saved.size;
+      settings.size = String(size);
+      restore(saved.values);
+      score = saved.score;
+      won = saved.won;
+      keepGoing = saved.keepGoing;
+      history = [];
+      setupBoard();
+      render();
+      if (saved.over) gameOver();
+      else if (won && !keepGoing) showWin();
+      else status = "playing";
+    }
+
+    function canMove() {
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const t = grid[r][c];
+          if (!t) return true;
+          if (c + 1 < size && grid[r][c + 1] && grid[r][c + 1].value === t.value) return true;
+          if (r + 1 < size && grid[r + 1][c] && grid[r + 1][c].value === t.value) return true;
+        }
+      }
+      return false;
+    }
+
+    function move(name) {
+      if (status !== "playing") return;
+      const d = DIRS[name];
+      const order = [...Array(size).keys()];
+      // Walk from the edge the tiles slide toward, so the front tiles settle first
+      const rows = d.y === 1 ? order.slice().reverse() : order;
+      const cols = d.x === 1 ? order.slice().reverse() : order;
+      const before = snapshot();
+      const merged = new Set();
+      const leaving = [];
+      let gained = 0;
+      let moved = false;
+
+      for (const r of rows) {
+        for (const c of cols) {
+          const tile = grid[r][c];
+          if (!tile) continue;
+          let nr = r;
+          let nc = c;
+          while (inside(nr + d.y, nc + d.x) && !grid[nr + d.y][nc + d.x]) {
+            nr += d.y;
+            nc += d.x;
+          }
+          const tr = nr + d.y;
+          const tc = nc + d.x;
+          const other = inside(tr, tc) ? grid[tr][tc] : null;
+          if (other && other.value === tile.value && !merged.has(other.id)) {
+            const result = { id: nextId++, value: tile.value * 2, isMerged: true };
+            grid[r][c] = null;
+            grid[tr][tc] = result;
+            merged.add(result.id);
+            leaving.push({ tile, r: tr, c: tc }, { tile: other, r: tr, c: tc });
+            gained += result.value;
+            moved = true;
+            if (result.value === GOAL && !won) won = true;
+          } else if (nr !== r || nc !== c) {
+            grid[r][c] = null;
+            grid[nr][nc] = tile;
+            moved = true;
+          }
+        }
+      }
+
+      if (!moved) return;
+      history.push(before);
+      if (history.length > MAX_UNDO) history.shift();
+      score += gained;
+      addRandomTile();
+      render(leaving);
+      if (gained) showGain(gained);
+
+      if (won && !keepGoing) showWin();
+      else if (!canMove()) gameOver();
+      saveGame();
+    }
+
+    function inside(r, c) {
+      return r >= 0 && c >= 0 && r < size && c < size;
+    }
+
+    function place(el, r, c) {
+      el.style.setProperty("--r", r);
+      el.style.setProperty("--c", c);
+    }
+
+    function render(leaving = []) {
+      const alive = new Set();
+      grid.forEach((row, r) => row.forEach((tile, c) => {
+        if (!tile) return;
+        alive.add(tile.id);
+        let el = tileEls.get(tile.id);
+        if (!el) {
+          el = document.createElement("div");
+          el.className = "tile";
+          if (tile.isNew) el.classList.add("new");
+          if (tile.isMerged) el.classList.add("merged");
+          if (tile.value > GOAL) el.classList.add("super");
+          el.dataset.value = tile.value;
+          el.dataset.digits = String(tile.value).length;
+          el.textContent = tile.value;
+          place(el, r, c);
+          boardEl.insertBefore(el, startScreen);
+          tileEls.set(tile.id, el);
+        } else {
+          place(el, r, c);
+        }
+        delete tile.isNew;
+        delete tile.isMerged;
+      }));
+
+      // Merged tiles slide into their target cell, then disappear under the new tile
+      for (const { tile, r, c } of leaving) {
+        const el = tileEls.get(tile.id);
+        if (!el) continue;
+        tileEls.delete(tile.id);
+        place(el, r, c);
+        setTimeout(() => el.remove(), MOVE_MS);
+      }
+
+      for (const [id, el] of tileEls) {
+        if (!alive.has(id)) {
+          el.remove();
+          tileEls.delete(id);
+        }
+      }
+
+      $("score").textContent = score;
+      $("best").textContent = Math.max(score, load(bestKey(), 0));
+      undoBtn.disabled = !history.length;
+      if (score > load(bestKey(), 0)) save(bestKey(), score);
+    }
+
+    function showGain(n) {
+      const el = document.createElement("div");
+      el.className = "gain";
+      el.textContent = `+${n}`;
+      $("score-stat").appendChild(el);
+      el.addEventListener("animationend", () => el.remove());
+    }
+
+    function undo() {
+      if (!history.length || (status !== "playing" && status !== "over")) return;
+      const prev = history.pop();
+      restore(prev.values);
+      score = prev.score;
+      status = "playing";
+      show(null);
+      render();
+      saveGame();
+    }
+
+    function show(screen) {
+      for (const s of [startScreen, winScreen, overScreen]) s.hidden = s !== screen;
+    }
+
+    function showWin() {
+      status = "won";
+      $("win-score").textContent = score;
+      show(winScreen);
+      $("continue-btn").focus();
+    }
+
+    function gameOver() {
+      status = "over";
+      const best = load(bestKey(), 0);
+      const isBest = score > 0 && score >= best;
+      const detail = $("over-detail");
+      $("final-score").textContent = score;
+      detail.className = isBest ? "new-best" : "";
+      detail.textContent = isBest ? `Best score on ${size}×${size}!` : `Best on ${size}×${size}: ${best}`;
+      $("over-undo-btn").hidden = !history.length;
+      show(overScreen);
+      $("again-btn").focus();
+    }
+
+    function openMenu() {
+      const inGame = status === "playing" || status === "menu-over-game";
+      $("cancel-btn").hidden = !inGame;
+      if (inGame) status = "menu-over-game";
+      renderSize();
+      show(startScreen);
+      $("start-btn").focus();
+    }
+
+    function closeMenu() {
+      status = "playing";
+      show(null);
+    }
+
+    const sizeGroup = $("size");
+    const renderSize = () => sizeGroup.querySelectorAll("button").forEach((b) =>
+      b.setAttribute("aria-pressed", b.dataset.value === settings.size));
+    sizeGroup.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      settings.size = btn.dataset.value;
+      save("2048.settings", settings);
+      renderSize();
+    });
+
+    $("start-btn").addEventListener("click", newGame);
+    $("cancel-btn").addEventListener("click", closeMenu);
+    $("new-btn").addEventListener("click", openMenu);
+    $("again-btn").addEventListener("click", openMenu);
+    $("win-new-btn").addEventListener("click", openMenu);
+    $("continue-btn").addEventListener("click", () => {
+      keepGoing = true;
+      status = "playing";
+      show(null);
+      if (!canMove()) gameOver();
+      saveGame();
+    });
+    undoBtn.addEventListener("click", undo);
+    $("over-undo-btn").addEventListener("click", undo);
+
+    document.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        if (e.code === "KeyZ" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          undo();
+        }
+        return;
+      }
+      if (KEYS[e.code]) {
+        if (status !== "playing") return;
+        e.preventDefault();
+        move(KEYS[e.code]);
+      } else if (e.code === "KeyU") {
+        undo();
+      } else if (e.code === "KeyN") {
+        openMenu();
+      } else if (e.code === "Escape" && status === "menu-over-game") {
+        closeMenu();
+      }
+    });
+
+    let touchStart = null;
+    boardEl.addEventListener("touchstart", (e) => {
+      if (status !== "playing" || e.touches.length > 1) return;
+      const t = e.touches[0];
+      touchStart = { x: t.clientX, y: t.clientY };
+    }, { passive: true });
+    boardEl.addEventListener("touchmove", (e) => {
+      if (touchStart) e.preventDefault();
+    }, { passive: false });
+    boardEl.addEventListener("touchend", (e) => {
+      if (!touchStart) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStart.x;
+      const dy = t.clientY - touchStart.y;
+      touchStart = null;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+      move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+    });
+
+    const saved = load("2048.game", null);
+    if (saved && GAPS[saved.size] && Array.isArray(saved.values) && saved.values.length === saved.size) {
+      resumeGame(saved);
+    } else {
+      size = Number(settings.size);
+      grid = Array.from({ length: size }, () => Array(size).fill(null));
+      score = 0;
+      history = [];
+      setupBoard();
+      render();
+      renderSize();
+      show(startScreen);
+      $("start-btn").focus();
+    }
+  })();
+  </script>
+</body>
+</html>
