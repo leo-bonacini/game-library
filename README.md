@@ -14,6 +14,7 @@ Open `index.html` in any modern browser to browse the library and pick a game. T
 | 💣 Minesweeper | [`games/minesweeper`](games/minesweeper) | Classic Minesweeper with themes, stats and custom boards |
 | 🔢 Sudoku | [`games/sudoku`](games/sudoku) | Generated puzzles with notes, hints and a daily challenge |
 | 🐍 Snake | [`games/snake`](games/snake) | Arcade snake with three speeds and solid or wrap-around edges |
+| 🃏 Solitaire | [`games/solitaire`](games/solitaire) | Klondike with draw 1 or 3, drag and drop, undo, hints and auto-finish |
 
 Each game folder has its own README with rules and controls.
 
