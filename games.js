@@ -49,6 +49,14 @@ window.GAMES = [
     tags: ["arcade", "solo"],
   },
   {
+    slug: "2048",
+    title: "2048",
+    icon: "🔷",
+    color: "#e6a817",
+    description: "Slide and merge numbered tiles to reach 2048. Undo, swipe controls, and 3×3 to 6×6 boards.",
+    tags: ["puzzle", "solo"],
+  },
+  {
     slug: "solitaire",
     title: "Solitaire",
     icon: "🃏",
