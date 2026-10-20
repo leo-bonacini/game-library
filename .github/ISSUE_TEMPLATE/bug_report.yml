@@ -1,0 +1,63 @@
+name: Bug report
+description: Something in a game or the library page doesn't work as expected.
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where is the problem?
+      options:
+        - Library page
+        - Tic-Tac-Toe
+        - Battleship
+        - Ludo
+        - Minesweeper
+        - Sudoku
+        - Snake
+        - Other / shared layout
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Snake and pick Fast speed
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      options:
+        - Desktop
+        - Phone
+        - Tablet
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: e.g. Chrome 130, Safari on iOS 18
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Theme
+      options:
+        - Light
+        - Dark
+        - Both / not relevant
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or console errors
+      description: Paste any errors from the browser console (F12) or attach screenshots.
