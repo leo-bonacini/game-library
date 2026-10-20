@@ -1,0 +1,37 @@
+name: New game or feature
+description: Suggest a new game for the library, or an improvement to an existing one.
+labels: ["enhancement"]
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Game or feature
+      placeholder: e.g. Connect Four, or "Sudoku: killer variant"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: How does it play, or what should change? Link the rules if it's a known game.
+    validations:
+      required: true
+  - type: dropdown
+    id: tags
+    attributes:
+      label: Kind of game
+      multiple: true
+      options:
+        - arcade
+        - board
+        - puzzle
+        - cards
+        - dice
+        - strategy
+        - solo
+        - against a bot
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it fits the library
+      description: Optional. What does it add that the current games don't?
