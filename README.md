@@ -14,6 +14,7 @@ Open `index.html` in any modern browser to browse the library and pick a game. T
 | 💣 Minesweeper | [`games/minesweeper`](games/minesweeper) | Classic Minesweeper with themes, stats and custom boards |
 | 🔢 Sudoku | [`games/sudoku`](games/sudoku) | Generated puzzles with notes, hints and a daily challenge |
 | 🐍 Snake | [`games/snake`](games/snake) | Arcade snake with three speeds and solid or wrap-around edges |
+| 🧱 Tetris | [`games/tetris`](games/tetris) | Falling blocks with hold, ghost piece, SRS rotation and three starting levels |
 
 Each game folder has its own README with rules and controls.
 

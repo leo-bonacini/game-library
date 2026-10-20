@@ -48,5 +48,13 @@ window.GAMES = [
     description: "Classic arcade snake: eat, grow, and don't hit yourself. Three speeds, solid or wrap-around edges.",
     tags: ["arcade", "solo"],
   },
+  {
+    slug: "tetris",
+    title: "Tetris",
+    icon: "🧱",
+    color: "#9b4fe0",
+    description: "Stack falling blocks and clear lines. Hold, ghost piece, next queue, and three starting levels.",
+    tags: ["arcade", "solo"],
+  },
   // @new-games
 ];
