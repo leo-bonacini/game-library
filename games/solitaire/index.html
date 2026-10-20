@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solitaire</title>
+  <link rel="stylesheet" href="../../shared/theme.css">
+  <script src="../../games.js"></script>
+  <script src="../../shared/layout.js" data-game="solitaire"></script>
+  <style>
+    :root {
+      --felt: #2f7d55;
+      --felt-edge: #276a48;
+      --slot: rgba(255, 255, 255, 0.32);
+      --card-bg: #ffffff;
+      --card-border: #d5d9e0;
+      --red: #d6343c;
+      --black: #1d2330;
+      --back: #2e8b57;
+      --back-stripe: #3a9d67;
+      --hint: #ffd84d;
+    }
+
+    :root[data-theme="dark"] {
+      --felt: #1b4632;
+      --felt-edge: #163a29;
+      --slot: rgba(255, 255, 255, 0.2);
+      --card-bg: #262b34;
+      --card-border: #3a4150;
+      --red: #ff6b6e;
+      --black: #e8eaf0;
+      --back: #1f6b43;
+      --back-stripe: #2a7f52;
+      --hint: #ffd84d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .stat span {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gl-muted);
+    }
+
+    .stat strong {
+      font-size: 1.25rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .icon-btn {
+      width: 48px;
+      align-self: stretch;
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      font: inherit;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .icon-btn:hover:not(:disabled) { background: var(--gl-surface-2); }
+    .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .felt {
+      position: relative;
+      padding: 12px;
+      background: var(--felt);
+      border: 1px solid var(--felt-edge);
+      border-radius: var(--gl-radius);
+      box-shadow: var(--gl-shadow);
+    }
+
+    .table {
+      --cw: 60px;
+      --ch: 84px;
+      position: relative;
+      min-height: 320px;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .slot {
+      position: absolute;
+      width: var(--cw);
+      height: var(--ch);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--slot);
+      border-radius: calc(var(--cw) * 0.1);
+      color: var(--slot);
+      font-size: calc(var(--cw) * 0.4);
+      font-weight: 700;
+    }
+
+    .slot.stock { cursor: pointer; }
+
+    .card {
+      position: absolute;
+      width: var(--cw);
+      height: var(--ch);
+      border-radius: calc(var(--cw) * 0.1);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      font-size: calc(var(--cw) * 0.24);
+      font-weight: 700;
+      line-height: 1;
+      transition: left 0.18s ease, top 0.18s ease;
+      cursor: default;
+    }
+
+    .card.red { color: var(--red); }
+    .card.black { color: var(--black); }
+    .card.up.movable { cursor: grab; }
+    .card.dragging { transition: none; cursor: grabbing; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35); }
+    .card.hint { outline: 3px solid var(--hint); outline-offset: 1px; }
+
+    .card .corner {
+      position: absolute;
+      top: 6%;
+      left: 8%;
+      text-align: center;
+    }
+
+    .card .corner.br {
+      top: auto;
+      left: auto;
+      bottom: 6%;
+      right: 8%;
+      transform: rotate(180deg);
+    }
+
+    .card .pip {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 18%;
+      font-size: calc(var(--cw) * 0.5);
+    }
+
+    .card:not(.up) {
+      background: repeating-linear-gradient(45deg, var(--back), var(--back) 4px, var(--back-stripe) 4px, var(--back-stripe) 8px);
+      border: 3px solid var(--card-bg);
+    }
+
+    .card:not(.up) > * { display: none; }
+
+    .card.shake { animation: shake 0.25s; }
+
+    @keyframes shake {
+      25% { translate: -4px 0; }
+      75% { translate: 4px 0; }
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px 16px;
+      background: var(--gl-overlay);
+      border-radius: var(--gl-radius);
+    }
+
+    .overlay[hidden] { display: none; }
+
+    .card-panel {
+      width: min(320px, 100%);
+      padding: 24px;
+      text-align: center;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius);
+      box-shadow: var(--gl-shadow);
+    }
+
+    .card-panel h2 {
+      margin: 0 0 6px;
+      font-size: 1.3rem;
+    }
+
+    .card-panel p {
+      margin: 0 0 16px;
+      color: var(--gl-muted);
+      font-size: 0.9rem;
+    }
+
+    .option {
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .option-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gl-muted);
+    }
+
+    .segmented {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--gl-surface-2);
+      border-radius: var(--gl-radius-sm);
+    }
+
+    .segmented button {
+      flex: 1;
+      padding: 8px 6px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--gl-muted);
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .btn {
+      width: 100%;
+      margin-top: 6px;
+      padding: 11px 18px;
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: var(--gl-surface-2); }
+    .btn[hidden] { display: none; }
+
+    .btn.primary {
+      border-color: var(--gl-accent);
+      background: var(--gl-accent);
+      color: var(--gl-accent-fg);
+    }
+
+    .btn.primary:hover { background: var(--gl-accent-hover); }
+
+    .btn:focus-visible, .segmented button:focus-visible, .icon-btn:focus-visible {
+      outline: 2px solid var(--gl-accent);
+      outline-offset: 2px;
+    }
+
+    .final-score {
+      margin: 4px 0 2px;
+      font-size: 2.6rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .new-best { color: var(--gl-success); font-weight: 700; }
+
+    .hint-text {
+      margin: 0;
+      min-height: 1.2em;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--gl-muted);
+    }
+
+    kbd {
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: var(--gl-surface-2);
+      font-family: inherit;
+    }
+
+    @media (pointer: coarse) {
+      .key-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="hud">
+      <div class="stat"><span>Moves</span><strong id="moves">0</strong></div>
+      <div class="stat"><span>Time</span><strong id="time">0:00</strong></div>
+      <button class="icon-btn" id="undo-btn" aria-label="Undo" title="Undo (U)" disabled>↶</button>
+      <button class="icon-btn" id="hint-btn" aria-label="Hint" title="Hint (H)">?</button>
+      <button class="icon-btn" id="new-btn" aria-label="New game" title="New game (N)">↻</button>
+    </div>
+
+    <div class="felt">
+      <div class="table" id="table" aria-label="Solitaire table"></div>
+
+      <div class="overlay" id="start-screen" hidden>
+        <div class="card-panel">
+          <h2>Solitaire</h2>
+          <p>Build each foundation from Ace to King in one suit. On the table, stack down in alternating colors.</p>
+          <div class="option">
+            <span class="option-label" id="draw-label">Draw</span>
+            <div class="segmented" id="draw" role="group" aria-labelledby="draw-label">
+              <button type="button" data-value="1">1 card</button>
+              <button type="button" data-value="3">3 cards</button>
+            </div>
+          </div>
+          <button class="btn primary" id="start-btn">Deal</button>
+          <button class="btn" id="cancel-btn" hidden>Back to game</button>
+          <a class="gl-back-link" href="../../index.html">← Back to library</a>
+        </div>
+      </div>
+
+      <div class="overlay" id="win-screen" hidden>
+        <div class="card-panel">
+          <h2>You won!</h2>
+          <div class="final-score" id="win-time">0:00</div>
+          <p id="win-stats"></p>
+          <p id="win-detail"></p>
+          <button class="btn primary" id="again-btn">Deal again</button>
+          <button class="btn" id="menu-btn">Change draw</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint-text" id="status" aria-live="polite">
+      <span class="key-hint">Drag or click cards to move them · <kbd>D</kbd> draw · <kbd>U</kbd> undo · <kbd>H</kbd> hint</span>
+    </p>
+  </main>
+
+  <script>
+  (function () {
+    const SUITS = ["♠", "♥", "♦", "♣"];
+    const RANKS = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+    const MAX_UNDO = 300;
+    const DRAG_THRESHOLD = 5;
+    const AUTO_STEP_MS = 90;
+
+    const $ = (id) => document.getElementById(id);
+    const table = $("table");
+    const startScreen = $("start-screen");
+    const winScreen = $("win-screen");
+    const undoBtn = $("undo-btn");
+    const statusEl = $("status");
+    const defaultStatus = statusEl.innerHTML;
+
+    function load(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw === null ? fallback : JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    }
+
+    function save(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    }
+
+    const settings = Object.assign({ draw: "1" }, load("solitaire.settings", {}));
+
+    // Card ids 0..51: suit = floor(id / 13), rank = id % 13 + 1
+    const cards = Array.from({ length: 52 }, (_, id) => ({
+      id,
+      suit: Math.floor(id / 13),
+      rank: (id % 13) + 1,
+      up: false,
+    }));
+    const isRed = (card) => card.suit === 1 || card.suit === 2;
+
+    let stock, waste, foundations, tableau, history, moves, elapsed, draw;
+    let status = "menu"; // menu | menu-over-game | playing | auto | won
+    let geo = {};
+    let drag = null;
+    let hintTimer = 0;
+
+    const cardEls = cards.map((card) => {
+      const el = document.createElement("div");
+      el.className = `card ${isRed(card) ? "red" : "black"}`;
+      el.dataset.id = card.id;
+      const label = `${RANKS[card.rank]}<br>${SUITS[card.suit]}`;
+      el.innerHTML = `<span class="corner">${label}</span><span class="pip">${SUITS[card.suit]}</span><span class="corner br">${label}</span>`;
+      el.setAttribute("aria-label", `${RANKS[card.rank]} of ${["spades", "hearts", "diamonds", "clubs"][card.suit]}`);
+      table.appendChild(el);
+      return el;
+    });
+
+    const stockSlot = document.createElement("div");
+    stockSlot.className = "slot stock";
+    stockSlot.title = "Draw (D)";
+    const foundationSlots = [0, 1, 2, 3].map(() => {
+      const slot = document.createElement("div");
+      slot.className = "slot";
+      slot.textContent = "A";
+      return slot;
+    });
+    const tableauSlots = Array.from({ length: 7 }, () => {
+      const slot = document.createElement("div");
+      slot.className = "slot";
+      slot.textContent = "K";
+      return slot;
+    });
+    table.prepend(stockSlot, ...foundationSlots, ...tableauSlots);
+
+    function snapshot() {
+      const ids = (pile) => pile.map((c) => c.id);
+      return {
+        stock: ids(stock),
+        waste: ids(waste),
+        foundations: foundations.map(ids),
+        tableau: tableau.map(ids),
+        up: cards.filter((c) => c.up).map((c) => c.id),
+      };
+    }
+
+    function restore(s) {
+      const pile = (ids) => ids.map((id) => cards[id]);
+      stock = pile(s.stock);
+      waste = pile(s.waste);
+      foundations = s.foundations.map(pile);
+      tableau = s.tableau.map(pile);
+      const up = new Set(s.up);
+      cards.forEach((c) => { c.up = up.has(c.id); });
+    }
+
+    function saveGame() {
+      if (status === "won") {
+        save("solitaire.game", null);
+        return;
+      }
+      save("solitaire.game", { state: snapshot(), moves, elapsed, draw });
+    }
+
+    function deal() {
+      const deck = cards.slice();
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      deck.forEach((c) => { c.up = false; });
+      tableau = Array.from({ length: 7 }, (_, i) => deck.splice(0, i + 1));
+      tableau.forEach((col) => { col[col.length - 1].up = true; });
+      stock = deck;
+      waste = [];
+      foundations = [[], [], [], []];
+      history = [];
+      moves = 0;
+      elapsed = 0;
+      draw = Number(settings.draw);
+      status = "playing";
+      show(null);
+      layout();
+      updateHud();
+      saveGame();
+    }
+
+    function top(pile) {
+      return pile[pile.length - 1];
+    }
+
+    function canFoundation(card, f) {
+      const t = top(f);
+      return t ? t.suit === card.suit && t.rank === card.rank - 1 : card.rank === 1;
+    }
+
+    function canTableau(card, col) {
+      const t = top(col);
+      return t ? t.up && isRed(t) !== isRed(card) && t.rank === card.rank + 1 : card.rank === 13;
+    }
+
+    function locate(card) {
+      for (const pile of [stock, waste, ...foundations, ...tableau]) {
+        const index = pile.indexOf(card);
+        if (index !== -1) return { pile, index };
+      }
+      return null;
+    }
+
+    function isMovable(card) {
+      const { pile, index } = locate(card);
+      if (!card.up || pile === stock) return false;
+      if (tableau.includes(pile)) return true;
+      return index === pile.length - 1;
+    }
+
+    function record() {
+      history.push({ state: snapshot(), moves });
+      if (history.length > MAX_UNDO) history.shift();
+    }
+
+    function afterAction() {
+      moves++;
+      for (const col of tableau) {
+        const t = top(col);
+        if (t) t.up = true;
+      }
+      layout();
+      updateHud();
+      if (foundations.every((f) => f.length === 13)) return win();
+      if (!stock.length && !waste.length && tableau.every((col) => col.every((c) => c.up))) autoFinish();
+      saveGame();
+    }
+
+    function moveCards(from, index, to) {
+      record();
+      to.push(...from.splice(index));
+      afterAction();
+    }
+
+    function drawCards() {
+      if (status !== "playing") return;
+      if (!stock.length && !waste.length) return;
+      record();
+      if (stock.length) {
+        const n = Math.min(draw, stock.length);
+        for (let i = 0; i < n; i++) {
+          const card = stock.pop();
+          card.up = true;
+          waste.push(card);
+        }
+      } else {
+        stock = waste.reverse();
+        stock.forEach((c) => { c.up = false; });
+        waste = [];
+      }
+      afterAction();
+    }
+
+    function autoMove(card) {
+      const { pile, index } = locate(card);
+      const single = index === pile.length - 1;
+      if (single && !foundations.includes(pile)) {
+        const f = foundations.find((f) => canFoundation(card, f));
+        if (f) return moveCards(pile, index, f);
+      }
+      // Prefer building on another card; only use an empty column if it actually frees something
+      const targets = tableau.filter((col) => col !== pile && canTableau(card, col));
+      const target = targets.find((col) => col.length) ||
+        (index > 0 || !tableau.includes(pile) ? targets[0] : null);
+      if (target) return moveCards(pile, index, target);
+      const el = cardEls[card.id];
+      el.classList.remove("shake");
+      void el.offsetWidth;
+      el.classList.add("shake");
+    }
+
+    function autoFinish() {
+      status = "auto";
+      const step = () => {
+        if (status !== "auto") return;
+        let best = null;
+        for (const pile of [...tableau, waste]) {
+          const card = top(pile);
+          if (!card) continue;
+          const f = foundations.find((f) => canFoundation(card, f));
+          if (f && (!best || card.rank < best.card.rank)) best = { card, pile, f };
+        }
+        if (!best) {
+          status = "playing";
+          return;
+        }
+        best.f.push(best.pile.pop());
+        moves++;
+        layout();
+        updateHud();
+        if (foundations.every((f) => f.length === 13)) win();
+        else setTimeout(step, AUTO_STEP_MS);
+      };
+      setTimeout(step, AUTO_STEP_MS);
+    }
+
+    function findHint() {
+      let best = null;
+      const consider = (score, card, target) => {
+        if (!best || score > best.score) best = { score, card, target };
+      };
+      const sources = [];
+      if (waste.length) sources.push({ pile: waste, index: waste.length - 1 });
+      tableau.forEach((col) => col.forEach((c, index) => { if (c.up) sources.push({ pile: col, index }); }));
+
+      for (const { pile, index } of sources) {
+        const card = pile[index];
+        if (index === pile.length - 1) {
+          const f = foundations.find((f) => canFoundation(card, f));
+          if (f) consider(3, card, f);
+        }
+        for (const col of tableau) {
+          if (col === pile || !canTableau(card, col)) continue;
+          if (pile === waste) {
+            consider(1, card, col);
+          } else {
+            const below = pile[index - 1];
+            // Only suggest table moves that turn over a hidden card or empty a column for a King
+            if (below && !below.up) consider(2, card, col);
+            else if (!below && col.length) consider(2, card, col);
+          }
+        }
+      }
+      return best;
+    }
+
+    function showHint() {
+      if (status !== "playing") return;
+      clearHint();
+      const hint = findHint();
+      let els = [];
+      if (hint) {
+        const target = top(hint.target);
+        els = [cardEls[hint.card.id], target ? cardEls[target.id] : slotFor(hint.target)];
+      } else if (stock.length || waste.length) {
+        els = [stock.length ? cardEls[top(stock).id] : stockSlot];
+        setStatus("Draw from the stock.");
+      } else {
+        setStatus("No moves left. Undo or deal a new game.");
+      }
+      els.forEach((el) => el.classList.add("hint"));
+      hintTimer = setTimeout(clearHint, 1500);
+    }
+
+    function clearHint() {
+      clearTimeout(hintTimer);
+      table.querySelectorAll(".hint").forEach((el) => el.classList.remove("hint"));
+    }
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+      clearTimeout(setStatus.timer);
+      setStatus.timer = setTimeout(() => { statusEl.innerHTML = defaultStatus; }, 2500);
+    }
+
+    function slotFor(pile) {
+      const f = foundations.indexOf(pile);
+      if (f !== -1) return foundationSlots[f];
+      return tableauSlots[tableau.indexOf(pile)];
+    }
+
+    function undo() {
+      if (!history.length || (status !== "playing" && status !== "auto")) return;
+      const prev = history.pop();
+      restore(prev.state);
+      moves = prev.moves + 1;
+      status = "playing";
+      clearHint();
+      layout();
+      updateHud();
+      saveGame();
+    }
+
+    function computeGeometry() {
+      const w = table.clientWidth;
+      const gap = Math.max(4, Math.round(w * 0.018));
+      const cw = (w - gap * 6) / 7;
+      const ch = cw * 1.4;
+      const top = table.getBoundingClientRect().top + window.scrollY;
+      const tableauY = ch + gap * 2.5;
+      geo = {
+        gap, cw, ch, tableauY,
+        x: (i) => i * (cw + gap),
+        down: ch * 0.12,
+        up: ch * 0.27,
+        available: Math.max(ch * 4, window.innerHeight - top - 40 - tableauY),
+      };
+      table.style.setProperty("--cw", `${cw}px`);
+      table.style.setProperty("--ch", `${ch}px`);
+    }
+
+    function place(card, x, y, z) {
+      const el = cardEls[card.id];
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.style.zIndex = z;
+      el.classList.toggle("up", card.up);
+      el.classList.toggle("movable", card.up && status !== "won" && isMovable(card));
+    }
+
+    function columnOffsets(col) {
+      const downs = col.filter((c, i) => !c.up && i < col.length - 1).length;
+      const ups = col.length - 1 - downs;
+      let up = geo.up;
+      // Squeeze long face-up runs so the column stays on screen
+      if (ups > 0) {
+        const room = geo.available - geo.ch - downs * geo.down;
+        up = Math.max(geo.ch * 0.15, Math.min(geo.up, room / ups));
+      }
+      return { down: geo.down, up };
+    }
+
+    function layout() {
+      computeGeometry();
+      const { x, cw, ch, tableauY } = geo;
+
+      stockSlot.style.left = `${x(0)}px`;
+      stockSlot.style.top = "0px";
+      stockSlot.textContent = waste.length ? "↻" : "";
+      stock.forEach((c, i) => place(c, x(0), 0, 10 + i));
+
+      const fanned = draw === 3 ? 3 : 1;
+      waste.forEach((c, i) => {
+        const shift = Math.max(0, i - (waste.length - fanned));
+        place(c, x(1) + shift * cw * 0.24, 0, 10 + i);
+      });
+
+      foundations.forEach((f, fi) => {
+        foundationSlots[fi].style.left = `${x(3 + fi)}px`;
+        foundationSlots[fi].style.top = "0px";
+        f.forEach((c, i) => place(c, x(3 + fi), 0, 10 + i));
+      });
+
+      let height = tableauY + ch * 3;
+      tableau.forEach((col, ci) => {
+        tableauSlots[ci].style.left = `${x(ci)}px`;
+        tableauSlots[ci].style.top = `${tableauY}px`;
+        const off = columnOffsets(col);
+        let y = tableauY;
+        col.forEach((c, i) => {
+          place(c, x(ci), y, 10 + i);
+          y += c.up ? off.up : off.down;
+        });
+        if (col.length) height = Math.max(height, y - (top(col).up ? off.up : off.down) + ch);
+      });
+      table.style.height = `${height}px`;
+      undoBtn.disabled = !history.length || status === "won";
+    }
+
+    function formatTime(s) {
+      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    }
+
+    function updateHud() {
+      $("moves").textContent = moves;
+      $("time").textContent = formatTime(elapsed);
+    }
+
+    function win() {
+      status = "won";
+      clearHint();
+      layout();
+      const key = `solitaire.best.${draw}`;
+      const best = load(key, null);
+      const isBest = best === null || elapsed < best;
+      if (isBest) save(key, elapsed);
+      const wins = load("solitaire.wins", 0) + 1;
+      save("solitaire.wins", wins);
+      saveGame();
+      const detail = $("win-detail");
+      $("win-time").textContent = formatTime(elapsed);
+      $("win-stats").textContent = `${moves} moves · draw ${draw} · ${wins} ${wins === 1 ? "win" : "wins"} so far`;
+      detail.className = isBest ? "new-best" : "";
+      detail.textContent = isBest ? `Fastest win with draw ${draw}!` : `Fastest with draw ${draw}: ${formatTime(best)}`;
+      show(winScreen);
+      $("again-btn").focus();
+    }
+
+    function show(screen) {
+      for (const s of [startScreen, winScreen]) s.hidden = s !== screen;
+    }
+
+    function openMenu() {
+      const inGame = status === "playing" || status === "menu-over-game";
+      $("cancel-btn").hidden = !inGame;
+      if (inGame) status = "menu-over-game";
+      renderDraw();
+      show(startScreen);
+      $("start-btn").focus();
+    }
+
+    function closeMenu() {
+      status = "playing";
+      show(null);
+    }
+
+    function pileRect(pile) {
+      const f = foundations.indexOf(pile);
+      if (f !== -1) return { x: geo.x(3 + f), y: 0 };
+      const ci = tableau.indexOf(pile);
+      const t = top(pile);
+      if (!t) return { x: geo.x(ci), y: geo.tableauY };
+      return { x: geo.x(ci), y: parseFloat(cardEls[t.id].style.top) };
+    }
+
+    function dropTarget(d, x, y) {
+      const card = d.card;
+      let best = null;
+      let bestArea = 0;
+      for (const pile of [...foundations, ...tableau]) {
+        if (pile === d.from) continue;
+        const legal = foundations.includes(pile)
+          ? d.cards.length === 1 && canFoundation(card, pile)
+          : canTableau(card, pile);
+        if (!legal) continue;
+        const r = pileRect(pile);
+        const w = Math.max(0, Math.min(x + geo.cw, r.x + geo.cw) - Math.max(x, r.x));
+        const h = Math.max(0, Math.min(y + geo.ch, r.y + geo.ch) - Math.max(y, r.y));
+        if (w * h > bestArea) {
+          bestArea = w * h;
+          best = pile;
+        }
+      }
+      return best;
+    }
+
+    table.addEventListener("pointerdown", (e) => {
+      if (status !== "playing" || drag || e.button > 0) return;
+      clearHint();
+      const el = e.target.closest(".card");
+      if (!el) {
+        if (e.target === stockSlot) drawCards();
+        return;
+      }
+      const card = cards[el.dataset.id];
+      const { pile, index } = locate(card);
+      if (pile === stock) {
+        drawCards();
+        return;
+      }
+      if (!isMovable(card)) return;
+      e.preventDefault();
+      try { table.setPointerCapture(e.pointerId); } catch {}
+      const moving = pile.slice(index);
+      drag = {
+        card, from: pile, index,
+        cards: moving,
+        startX: e.clientX,
+        startY: e.clientY,
+        origin: moving.map((c) => ({ x: parseFloat(cardEls[c.id].style.left), y: parseFloat(cardEls[c.id].style.top) })),
+        active: false,
+      };
+    });
+
+    table.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.active) {
+        if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+        drag.active = true;
+        drag.cards.forEach((c) => cardEls[c.id].classList.add("dragging"));
+      }
+      drag.cards.forEach((c, i) => {
+        const el = cardEls[c.id];
+        el.style.left = `${drag.origin[i].x + dx}px`;
+        el.style.top = `${drag.origin[i].y + dy}px`;
+        el.style.zIndex = 1000 + i;
+      });
+    });
+
+    function endDrag(e, cancelled) {
+      if (!drag) return;
+      const d = drag;
+      drag = null;
+      d.cards.forEach((c) => cardEls[c.id].classList.remove("dragging"));
+      if (cancelled) return layout();
+      if (!d.active) return autoMove(d.card);
+      const x = d.origin[0].x + e.clientX - d.startX;
+      const y = d.origin[0].y + e.clientY - d.startY;
+      const target = dropTarget(d, x, y);
+      if (target) moveCards(d.from, d.index, target);
+      else layout();
+    }
+
+    table.addEventListener("pointerup", (e) => endDrag(e, false));
+    table.addEventListener("pointercancel", (e) => endDrag(e, true));
+
+    const drawGroup = $("draw");
+    const renderDraw = () => drawGroup.querySelectorAll("button").forEach((b) =>
+      b.setAttribute("aria-pressed", b.dataset.value === settings.draw));
+    drawGroup.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      settings.draw = btn.dataset.value;
+      save("solitaire.settings", settings);
+      renderDraw();
+    });
+
+    $("start-btn").addEventListener("click", deal);
+    $("cancel-btn").addEventListener("click", closeMenu);
+    $("new-btn").addEventListener("click", openMenu);
+    $("again-btn").addEventListener("click", deal);
+    $("menu-btn").addEventListener("click", openMenu);
+    $("hint-btn").addEventListener("click", showHint);
+    undoBtn.addEventListener("click", undo);
+
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.code === "KeyZ") {
+        e.preventDefault();
+        undo();
+      } else if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      } else if (e.code === "KeyD") {
+        drawCards();
+      } else if (e.code === "KeyU") {
+        undo();
+      } else if (e.code === "KeyH") {
+        showHint();
+      } else if (e.code === "KeyN") {
+        openMenu();
+      } else if (e.code === "Escape" && status === "menu-over-game") {
+        closeMenu();
+      }
+    });
+
+    setInterval(() => {
+      if (status !== "playing" && status !== "auto") return;
+      if (!moves || document.hidden) return;
+      elapsed++;
+      updateHud();
+      // Persist the clock now and then, not every second
+      if (elapsed % 10 === 0) saveGame();
+    }, 1000);
+
+    window.addEventListener("resize", () => { if (!drag) layout(); });
+    // A scrollbar appearing narrows the table without firing a window resize
+    let lastWidth = 0;
+    new ResizeObserver(() => {
+      if (table.clientWidth === lastWidth || drag) return;
+      lastWidth = table.clientWidth;
+      layout();
+    }).observe(table);
+
+    const saved = load("solitaire.game", null);
+    if (saved && saved.state && saved.state.tableau && saved.state.tableau.length === 7) {
+      restore(saved.state);
+      moves = saved.moves;
+      elapsed = saved.elapsed;
+      draw = saved.draw;
+      settings.draw = String(draw);
+      history = [];
+      status = "playing";
+      layout();
+      updateHud();
+      if (!stock.length && !waste.length && tableau.every((col) => col.every((c) => c.up))) autoFinish();
+    } else {
+      stock = cards.slice();
+      waste = [];
+      foundations = [[], [], [], []];
+      tableau = Array.from({ length: 7 }, () => []);
+      history = [];
+      moves = 0;
+      elapsed = 0;
+      draw = Number(settings.draw);
+      layout();
+      updateHud();
+      renderDraw();
+      show(startScreen);
+      $("start-btn").focus();
+    }
+  })();
+  </script>
+</body>
+</html>

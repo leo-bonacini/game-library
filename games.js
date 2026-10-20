@@ -64,5 +64,13 @@ window.GAMES = [
     description: "Stack falling blocks and clear lines. Hold, ghost piece, next queue, and three starting levels.",
     tags: ["arcade", "solo"],
   },
+  {
+    slug: "solitaire",
+    title: "Solitaire",
+    icon: "🃏",
+    color: "#2e8b57",
+    description: "Klondike patience: build the four foundations from Ace to King. Draw 1 or 3, undo, hints, and auto-finish.",
+    tags: ["cards", "solo"],
+  },
   // @new-games
 ];
