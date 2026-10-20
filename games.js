@@ -57,6 +57,14 @@ window.GAMES = [
     tags: ["puzzle", "solo"],
   },
   {
+    slug: "tetris",
+    title: "Tetris",
+    icon: "🧱",
+    color: "#9b4fe0",
+    description: "Stack falling blocks and clear lines. Hold, ghost piece, next queue, and three starting levels.",
+    tags: ["arcade", "solo"],
+  },
+  {
     slug: "solitaire",
     title: "Solitaire",
     icon: "🃏",
