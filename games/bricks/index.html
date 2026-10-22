@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bricks</title>
+  <link rel="stylesheet" href="../../shared/theme.css">
+  <script src="../../games.js"></script>
+  <script src="../../shared/layout.js" data-game="bricks"></script>
+  <style>
+    :root {
+      --board: #eef0f5;
+      --paddle: #2b2f45;
+      --ball: #2b2f45;
+      --brick-1: #ef476f;
+      --brick-2: #f78c3b;
+      --brick-3: #e6b422;
+      --brick-4: #2fb861;
+      --brick-5: #3a86ff;
+      --brick-6: #8338ec;
+      --brick-tough: #6c7289;
+    }
+
+    :root[data-theme="dark"] {
+      --board: #161a22;
+      --paddle: #e9ebf3;
+      --ball: #ffffff;
+      --brick-1: #ff6b8b;
+      --brick-2: #ffa552;
+      --brick-3: #ffd84d;
+      --brick-4: #5cd97a;
+      --brick-5: #6ba4ff;
+      --brick-6: #b57cff;
+      --brick-tough: #9aa0b4;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app {
+      width: min(520px, 100%);
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .stat span, .option-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gl-muted);
+    }
+
+    .stat strong {
+      font-size: 1.25rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .icon-btn {
+      width: 48px;
+      align-self: stretch;
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      font: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .icon-btn:hover:not(:disabled) { background: var(--gl-surface-2); }
+    .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .stage {
+      position: relative;
+      align-self: center;
+      width: min(100%, calc((100dvh - var(--gl-bar-height) - 150px) * 0.75));
+      min-width: 280px;
+      aspect-ratio: 3 / 4;
+      border-radius: var(--gl-radius);
+      overflow: hidden;
+      border: 1px solid var(--gl-border);
+      box-shadow: var(--gl-shadow);
+      touch-action: none;
+      cursor: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: var(--gl-overlay);
+      cursor: default;
+    }
+
+    .overlay[hidden] { display: none; }
+
+    .card {
+      width: min(320px, 100%);
+      padding: 24px;
+      text-align: center;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius);
+      box-shadow: var(--gl-shadow);
+    }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 1.3rem;
+    }
+
+    .card p {
+      margin: 0 0 16px;
+      color: var(--gl-muted);
+      font-size: 0.9rem;
+    }
+
+    .option {
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .option-label {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .segmented {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--gl-surface-2);
+      border-radius: var(--gl-radius-sm);
+    }
+
+    .segmented button {
+      flex: 1;
+      padding: 8px 6px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--gl-muted);
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .btn {
+      width: 100%;
+      margin-top: 6px;
+      padding: 11px 18px;
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: var(--gl-surface-2); }
+
+    .btn.primary {
+      border-color: var(--gl-accent);
+      background: var(--gl-accent);
+      color: var(--gl-accent-fg);
+    }
+
+    .btn.primary:hover { background: var(--gl-accent-hover); }
+
+    .btn:focus-visible, .segmented button:focus-visible, .icon-btn:focus-visible {
+      outline: 2px solid var(--gl-accent);
+      outline-offset: 2px;
+    }
+
+    .final-score {
+      margin: 4px 0 2px;
+      font-size: 2.6rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .new-best { color: var(--gl-success); font-weight: 700; }
+
+    .hint {
+      margin: 0;
+      text-align: center;
+      font-size: 0.8rem;
+      line-height: 1.9;
+      color: var(--gl-muted);
+    }
+
+    kbd {
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: var(--gl-surface-2);
+      font-family: inherit;
+    }
+
+    @media (pointer: coarse) {
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <button id="sound-btn" title="Sound" aria-label="Mute sound" data-gl-action>🔊</button>
+
+  <main class="app">
+    <div class="hud">
+      <div class="stat"><span>Score</span><strong id="score">0</strong></div>
+      <div class="stat"><span>Best</span><strong id="best">0</strong></div>
+      <div class="stat"><span>Level</span><strong id="level">1</strong></div>
+      <div class="stat"><span>Lives</span><strong id="lives">3</strong></div>
+      <button class="icon-btn" id="pause-btn" aria-label="Pause" title="Pause (P)" disabled>⏸</button>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="board" role="img" aria-label="Bricks playing field"></canvas>
+
+      <div class="overlay" id="start-screen">
+        <div class="card">
+          <h2>Bricks</h2>
+          <p>Move the paddle to keep the ball in play and knock out every brick. Gray bricks need two hits.</p>
+          <div class="option">
+            <span class="option-label" id="speed-label">Speed</span>
+            <div class="segmented" id="speed" role="group" aria-labelledby="speed-label">
+              <button type="button" data-value="slow">Slow</button>
+              <button type="button" data-value="normal">Normal</button>
+              <button type="button" data-value="fast">Fast</button>
+            </div>
+          </div>
+          <button class="btn primary" id="start-btn">Start</button>
+          <a class="gl-back-link" href="../../index.html">← Back to library</a>
+        </div>
+      </div>
+
+      <div class="overlay" id="pause-screen" hidden>
+        <div class="card">
+          <h2>Paused</h2>
+          <p>Press P or tap Resume.</p>
+          <button class="btn primary" id="resume-btn">Resume</button>
+          <button class="btn" id="quit-btn">Quit to menu</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="over-screen" hidden>
+        <div class="card">
+          <h2>Game over</h2>
+          <div class="final-score" id="final-score">0</div>
+          <p id="over-detail"></p>
+          <button class="btn primary" id="again-btn">Play again</button>
+          <button class="btn" id="menu-btn">Change speed</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint">
+      Move the mouse or <kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> · <kbd>Space</kbd> or click to launch · <kbd>P</kbd> pause
+    </p>
+  </main>
+
+  <script>
+  (function () {
+    const W = 480;
+    const H = 640;
+    const COLS = 10;
+    const BRICK_W = 44;
+    const BRICK_H = 18;
+    const BRICK_GAP = 4;
+    const BRICK_TOP = 70;
+    const BRICK_LEFT = (W - (COLS * BRICK_W + (COLS - 1) * BRICK_GAP)) / 2;
+    const PADDLE_W = 84;
+    const PADDLE_H = 12;
+    const PADDLE_Y = H - 48;
+    const PADDLE_SPEED = 520;
+    const BALL_R = 7;
+    const MAX_BOUNCE = (60 * Math.PI) / 180;
+    const SPEEDS = { slow: 300, normal: 380, fast: 470 };
+    const SPEED_UP_PER_LEVEL = 0.06;
+    const MAX_SPEED_FACTOR = 1.6;
+    const ROW_COLORS = ["--brick-1", "--brick-2", "--brick-3", "--brick-4", "--brick-5", "--brick-6"];
+
+    // Level layouts: one string per row, "." empty, "1" normal brick, "2" tough brick
+    const LEVELS = [
+      [
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+      ],
+      [
+        "..111111..",
+        ".11222211.",
+        "1112..2111",
+        "1112..2111",
+        ".11222211.",
+        "..111111..",
+      ],
+      [
+        "1.1.1.1.1.",
+        ".1.1.1.1.1",
+        "2222222222",
+        "1.1.1.1.1.",
+        ".1.1.1.1.1",
+        "2222222222",
+      ],
+      [
+        "2........2",
+        "12......21",
+        "112....211",
+        "1112..2111",
+        "1111221111",
+        "1111111111",
+      ],
+      [
+        "2222222222",
+        "2111111112",
+        "2122222212",
+        "2121111212",
+        "2122222212",
+        "2111111112",
+      ],
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const canvas = $("board");
+    const ctx = canvas.getContext("2d");
+    const stage = $("stage");
+    const startScreen = $("start-screen");
+    const pauseScreen = $("pause-screen");
+    const overScreen = $("over-screen");
+    const pauseBtn = $("pause-btn");
+    const soundBtn = $("sound-btn");
+
+    function load(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw === null ? fallback : JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    }
+
+    function save(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    }
+
+    const settings = Object.assign({ speed: "normal", sound: true }, load("bricks.settings", {}));
+    const best = load("bricks.best", {});
+
+    let bricks, paddleX, ball, score, lives, levelIndex, baseSpeed;
+    let keys = { left: false, right: false };
+    let pointerX = null;
+    let status = "menu"; // menu | serving | playing | paused | over
+    let pausedFrom = "playing";
+    let lastTime = 0;
+    let colors = {};
+
+    function readColors() {
+      const css = getComputedStyle(document.documentElement);
+      for (const name of ["--board", "--paddle", "--ball", "--brick-tough", "--gl-muted", ...ROW_COLORS]) {
+        colors[name] = css.getPropertyValue(name).trim();
+      }
+    }
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      draw();
+    }
+
+    function buildLevel(index) {
+      const layout = LEVELS[index % LEVELS.length];
+      bricks = [];
+      layout.forEach((row, r) => {
+        [...row].forEach((ch, c) => {
+          if (ch === ".") return;
+          bricks.push({
+            x: BRICK_LEFT + c * (BRICK_W + BRICK_GAP),
+            y: BRICK_TOP + r * (BRICK_H + BRICK_GAP),
+            hits: Number(ch),
+            row: r,
+          });
+        });
+      });
+    }
+
+    function ballSpeed() {
+      return baseSpeed * Math.min(MAX_SPEED_FACTOR, 1 + levelIndex * SPEED_UP_PER_LEVEL);
+    }
+
+    function serve() {
+      ball = { x: paddleX, y: PADDLE_Y - BALL_R - 1, vx: 0, vy: 0 };
+      status = "serving";
+    }
+
+    function launch() {
+      if (status !== "serving") return;
+      const angle = (Math.random() * 0.6 - 0.3);
+      const speed = ballSpeed();
+      ball.vx = Math.sin(angle) * speed;
+      ball.vy = -Math.cos(angle) * speed;
+      status = "playing";
+    }
+
+    function bestKey() {
+      return settings.speed;
+    }
+
+    function updateHud() {
+      $("score").textContent = score;
+      $("best").textContent = Math.max(best[bestKey()] || 0, score);
+      $("level").textContent = levelIndex + 1;
+      $("lives").textContent = lives;
+    }
+
+    function start() {
+      baseSpeed = SPEEDS[settings.speed];
+      score = 0;
+      lives = 3;
+      levelIndex = 0;
+      paddleX = W / 2;
+      buildLevel(levelIndex);
+      serve();
+      startScreen.hidden = true;
+      overScreen.hidden = true;
+      pauseScreen.hidden = true;
+      pauseBtn.disabled = false;
+      updateHud();
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+
+    function pause() {
+      if (status !== "playing" && status !== "serving") return;
+      pausedFrom = status;
+      status = "paused";
+      pauseScreen.hidden = false;
+      $("resume-btn").focus();
+    }
+
+    function resume() {
+      if (status !== "paused") return;
+      status = pausedFrom;
+      pauseScreen.hidden = true;
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+
+    function toMenu() {
+      status = "menu";
+      pauseScreen.hidden = true;
+      overScreen.hidden = true;
+      startScreen.hidden = false;
+      pauseBtn.disabled = true;
+      renderSpeed();
+      reset();
+      $("start-btn").focus();
+    }
+
+    function gameOver() {
+      status = "over";
+      pauseBtn.disabled = true;
+      const prev = best[bestKey()] || 0;
+      const isBest = score > prev;
+      if (isBest) {
+        best[bestKey()] = score;
+        save("bricks.best", best);
+      }
+      $("final-score").textContent = score;
+      $("over-detail").innerHTML = isBest && score > 0
+        ? `<span class="new-best">New best!</span> Reached level ${levelIndex + 1}.`
+        : `Reached level ${levelIndex + 1}. Best: ${prev}`;
+      overScreen.hidden = false;
+      $("again-btn").focus();
+      beep(140, 0.4);
+    }
+
+    function movePaddle(dt) {
+      if (pointerX !== null) {
+        paddleX = pointerX;
+      } else {
+        const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+        paddleX += dir * PADDLE_SPEED * dt;
+      }
+      paddleX = Math.max(PADDLE_W / 2, Math.min(W - PADDLE_W / 2, paddleX));
+      if (status === "serving") ball.x = paddleX;
+    }
+
+    // Circle vs rectangle: returns the axis to reflect on, or null.
+    function hitRect(rx, ry, rw, rh) {
+      const cx = Math.max(rx, Math.min(ball.x, rx + rw));
+      const cy = Math.max(ry, Math.min(ball.y, ry + rh));
+      const dx = ball.x - cx;
+      const dy = ball.y - cy;
+      if (dx * dx + dy * dy > BALL_R * BALL_R) return null;
+      // Decide by how deep the ball is on each axis
+      const overlapX = Math.min(ball.x + BALL_R - rx, rx + rw - (ball.x - BALL_R));
+      const overlapY = Math.min(ball.y + BALL_R - ry, ry + rh - (ball.y - BALL_R));
+      return overlapX < overlapY ? "x" : "y";
+    }
+
+    function step(dt) {
+      ball.x += ball.vx * dt;
+      ball.y += ball.vy * dt;
+
+      if (ball.x < BALL_R) { ball.x = BALL_R; ball.vx = Math.abs(ball.vx); beep(520, 0.03); }
+      if (ball.x > W - BALL_R) { ball.x = W - BALL_R; ball.vx = -Math.abs(ball.vx); beep(520, 0.03); }
+      if (ball.y < BALL_R) { ball.y = BALL_R; ball.vy = Math.abs(ball.vy); beep(520, 0.03); }
+
+      // Paddle: bounce angle depends on where the ball lands
+      if (ball.vy > 0 && hitRect(paddleX - PADDLE_W / 2, PADDLE_Y, PADDLE_W, PADDLE_H)) {
+        const offset = Math.max(-1, Math.min(1, (ball.x - paddleX) / (PADDLE_W / 2)));
+        const angle = offset * MAX_BOUNCE;
+        const speed = Math.hypot(ball.vx, ball.vy);
+        ball.vx = Math.sin(angle) * speed;
+        ball.vy = -Math.cos(angle) * speed;
+        ball.y = PADDLE_Y - BALL_R;
+        beep(330, 0.05);
+      }
+
+      for (let i = 0; i < bricks.length; i++) {
+        const b = bricks[i];
+        const axis = hitRect(b.x, b.y, BRICK_W, BRICK_H);
+        if (!axis) continue;
+        if (axis === "x") ball.vx = ball.x < b.x + BRICK_W / 2 ? -Math.abs(ball.vx) : Math.abs(ball.vx);
+        else ball.vy = ball.y < b.y + BRICK_H / 2 ? -Math.abs(ball.vy) : Math.abs(ball.vy);
+        b.hits--;
+        if (b.hits <= 0) {
+          bricks.splice(i, 1);
+          score += 10 * (levelIndex + 1);
+          beep(660 + (6 - b.row) * 40, 0.06);
+        } else {
+          score += 5;
+          beep(240, 0.05);
+        }
+        updateHud();
+        break;
+      }
+
+      if (ball.y - BALL_R > H) {
+        lives--;
+        updateHud();
+        if (lives <= 0) {
+          gameOver();
+        } else {
+          beep(180, 0.25);
+          serve();
+        }
+        return;
+      }
+
+      if (!bricks.length) {
+        levelIndex++;
+        score += 100;
+        buildLevel(levelIndex);
+        beep(880, 0.15);
+        serve();
+        updateHud();
+      }
+    }
+
+    function loop(now) {
+      if (status !== "playing" && status !== "serving") { draw(); return; }
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+      movePaddle(dt);
+      if (status === "playing") {
+        // Small sub-steps so the ball never skips through a brick
+        const steps = Math.ceil((Math.hypot(ball.vx, ball.vy) * dt) / (BALL_R / 2));
+        for (let i = 0; i < steps && status === "playing"; i++) step(dt / steps);
+      }
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function draw() {
+      const scale = canvas.width / W;
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.fillStyle = colors["--board"];
+      ctx.fillRect(0, 0, W, H);
+      if (!bricks) return;
+
+      for (const b of bricks) {
+        ctx.fillStyle = b.hits > 1 ? colors["--brick-tough"] : colors[ROW_COLORS[b.row % ROW_COLORS.length]];
+        roundRect(b.x, b.y, BRICK_W, BRICK_H, 4);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = colors["--paddle"];
+      roundRect(paddleX - PADDLE_W / 2, PADDLE_Y, PADDLE_W, PADDLE_H, PADDLE_H / 2);
+      ctx.fill();
+
+      if (ball) {
+        ctx.fillStyle = colors["--ball"];
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (status === "serving") {
+        ctx.fillStyle = colors["--gl-muted"];
+        ctx.font = "600 16px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Click, tap or press Space to launch", W / 2, PADDLE_Y - 60);
+      }
+    }
+
+    function reset() {
+      levelIndex = 0;
+      score = 0;
+      lives = 3;
+      paddleX = W / 2;
+      buildLevel(0);
+      ball = { x: paddleX, y: PADDLE_Y - BALL_R - 1, vx: 0, vy: 0 };
+      updateHud();
+      draw();
+    }
+
+    let audio;
+    function beep(freq, duration) {
+      if (!settings.sound) return;
+      try {
+        audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+        osc.type = "square";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.05, audio.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + duration);
+        osc.connect(gain).connect(audio.destination);
+        osc.start();
+        osc.stop(audio.currentTime + duration);
+      } catch {}
+    }
+
+    function renderSound() {
+      soundBtn.textContent = settings.sound ? "🔊" : "🔈";
+      soundBtn.setAttribute("aria-label", settings.sound ? "Mute sound" : "Unmute sound");
+    }
+
+    const speedGroup = $("speed");
+    const renderSpeed = () => speedGroup.querySelectorAll("button").forEach((b) =>
+      b.setAttribute("aria-pressed", b.dataset.value === settings.speed));
+    speedGroup.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      settings.speed = btn.dataset.value;
+      save("bricks.settings", settings);
+      renderSpeed();
+      updateHud();
+    });
+
+    $("start-btn").addEventListener("click", start);
+    $("again-btn").addEventListener("click", start);
+    $("menu-btn").addEventListener("click", toMenu);
+    $("resume-btn").addEventListener("click", resume);
+    $("quit-btn").addEventListener("click", toMenu);
+    pauseBtn.addEventListener("click", () => (status === "paused" ? resume() : pause()));
+    soundBtn.addEventListener("click", () => {
+      settings.sound = !settings.sound;
+      save("bricks.settings", settings);
+      renderSound();
+    });
+
+    const KEYS = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right" };
+    document.addEventListener("keydown", (e) => {
+      const dir = KEYS[e.code];
+      if (dir) {
+        if (status !== "playing" && status !== "serving") return;
+        e.preventDefault();
+        keys[dir] = true;
+        pointerX = null;
+      } else if (e.code === "Space") {
+        if (status === "serving") { e.preventDefault(); launch(); }
+      } else if (e.code === "KeyP") {
+        if (status === "paused") resume();
+        else pause();
+      } else if (e.code === "Escape") {
+        pause();
+      }
+    });
+    document.addEventListener("keyup", (e) => { if (KEYS[e.code]) keys[KEYS[e.code]] = false; });
+    window.addEventListener("blur", () => { keys = { left: false, right: false }; });
+
+    function toGameX(clientX) {
+      const rect = canvas.getBoundingClientRect();
+      return ((clientX - rect.left) / rect.width) * W;
+    }
+
+    stage.addEventListener("pointermove", (e) => {
+      if (status !== "playing" && status !== "serving") return;
+      pointerX = toGameX(e.clientX);
+    });
+    stage.addEventListener("pointerdown", (e) => {
+      if (status !== "playing" && status !== "serving") return;
+      if (e.target !== canvas) return;
+      pointerX = toGameX(e.clientX);
+      if (e.pointerType !== "mouse") stage.setPointerCapture(e.pointerId);
+      launch();
+    });
+
+    document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+    window.addEventListener("gl-themechange", () => { readColors(); draw(); });
+    window.addEventListener("resize", resize);
+
+    readColors();
+    renderSound();
+    renderSpeed();
+    reset();
+    resize();
+    $("start-btn").focus();
+  })();
+  </script>
+</body>
+</html>

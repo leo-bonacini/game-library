@@ -72,5 +72,13 @@ window.GAMES = [
     description: "Klondike patience: build the four foundations from Ace to King. Draw 1 or 3, undo, hints, and auto-finish.",
     tags: ["cards", "solo"],
   },
+  {
+    slug: "bricks",
+    title: "Bricks",
+    icon: "💥",
+    color: "#ef476f",
+    description: "Bounce the ball off your paddle and clear every brick. Five layouts that loop faster, three speeds.",
+    tags: ["arcade", "solo"],
+  },
   // @new-games
 ];
