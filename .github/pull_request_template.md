@@ -23,3 +23,4 @@
 - [ ] `localStorage` keys are prefixed with the game's slug
 - [ ] No build step or runtime dependencies added
 - [ ] New game: registered in `games.js` with tags, listed in the root `README.md`, has its own `README.md`
+- [ ] `node scripts/check-games.js` passes

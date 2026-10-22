@@ -31,6 +31,7 @@ shared/layout.js        Shared layout: top bar with back link, game title and th
 games/<slug>/           One self-contained game per folder, entry point index.html
 templates/blank-game/   Starting point for new games
 scripts/new-game.sh     Scaffolds a new game and registers it
+scripts/check-games.js  Checks games/, games.js and the README table agree
 ```
 
 ## Shared layout and theme
@@ -60,6 +61,8 @@ This copies `templates/blank-game` into `games/word-search/`, fills in the title
 1. Build the game in `games/word-search/index.html` (split into `css/` and `js/` files if it grows). The template already includes the shared layout.
 2. Set its `tags` in `games.js` so it shows up under the right filters.
 3. Open the root `index.html` to see it in the library.
+4. Add a row for it to the **Games** table in this README, in the same position as in `games.js`.
+5. Run `node scripts/check-games.js`.
 
 To add a game by hand, create `games/<slug>/index.html` with the shared `<head>` lines above, and add an object to the `GAMES` array in `games.js`.
 
@@ -69,3 +72,4 @@ To add a game by hand, create `games/<slug>/index.html` with the shared `<head>`
 - No build step and no runtime dependencies.
 - Use the shared layout and `--gl-*` tokens; don't add a separate title header or theme switcher.
 - Prefix `localStorage` keys with the game's slug: all games share one origin on GitHub Pages.
+- `scripts/check-games.js` runs on every pull request (against the result of merging it into `main`). It fails if a game folder, its `games.js` entry and its README row are missing, duplicated, out of order or don't match, or if conflict markers are left behind. When two game PRs are open at once, the second one conflicts in `games.js` and `README.md` after the first is merged: merge `main` into it, keep both entries (the merged one first), and run the check before pushing.
