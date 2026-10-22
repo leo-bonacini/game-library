@@ -72,5 +72,13 @@ window.GAMES = [
     description: "Klondike patience: build the four foundations from Ace to King. Draw 1 or 3, undo, hints, and auto-finish.",
     tags: ["cards", "solo"],
   },
+  {
+    slug: "nonogram",
+    title: "Nonogram",
+    icon: "🧩",
+    color: "#3d5a80",
+    description: "Fill the grid from the number clues to reveal a picture. Generated 5×5 to 15×15 puzzles, each solvable by logic.",
+    tags: ["puzzle", "solo"],
+  },
   // @new-games
 ];
