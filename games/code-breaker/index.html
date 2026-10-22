@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Breaker</title>
+  <link rel="stylesheet" href="../../shared/theme.css">
+  <script src="../../games.js"></script>
+  <script src="../../shared/layout.js" data-game="code-breaker"></script>
+  <style>
+    :root {
+      --c1: #e5484d;
+      --c2: #f08c2a;
+      --c3: #f2c230;
+      --c4: #3cbf5c;
+      --c5: #3a6ff0;
+      --c6: #9b4fe0;
+      --c7: #e05fa8;
+      --c8: #20a8b8;
+      --peg-fg: #ffffff;
+      --hole: #dfe3ee;
+      --exact: #1b1e2c;
+      --near: #ffffff;
+    }
+
+    :root[data-theme="dark"] {
+      --c1: #ff6b6e;
+      --c2: #ffa552;
+      --c3: #ffd84d;
+      --c4: #5cd97a;
+      --c5: #6b93ff;
+      --c6: #b57cff;
+      --c7: #ff85c5;
+      --c8: #4fd0de;
+      --peg-fg: #11131b;
+      --hole: #2f3447;
+      --exact: #e9ebf3;
+      --near: #5d6275;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app {
+      width: min(460px, 100%);
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .stat span, .option-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gl-muted);
+    }
+
+    .stat strong {
+      font-size: 1.25rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .icon-btn {
+      width: 48px;
+      align-self: stretch;
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      font: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .icon-btn:hover:not(:disabled) { background: var(--gl-surface-2); }
+
+    .stage {
+      position: relative;
+      min-height: 420px;
+      padding: 12px;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius);
+      box-shadow: var(--gl-shadow);
+    }
+
+    .rows {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 8px;
+      border-radius: var(--gl-radius-sm);
+    }
+
+    .row.current { background: var(--gl-accent-soft); }
+    .row.secret { margin-top: 6px; border-top: 1px dashed var(--gl-border); border-radius: 0; padding-top: 12px; }
+
+    .row-num {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--gl-muted);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .slots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .peg {
+      width: var(--peg, 36px);
+      height: var(--peg, 36px);
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: var(--hole);
+      color: var(--peg-fg);
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .peg[data-color="1"] { background: var(--c1); }
+    .peg[data-color="2"] { background: var(--c2); }
+    .peg[data-color="3"] { background: var(--c3); }
+    .peg[data-color="4"] { background: var(--c4); }
+    .peg[data-color="5"] { background: var(--c5); }
+    .peg[data-color="6"] { background: var(--c6); }
+    .peg[data-color="7"] { background: var(--c7); }
+    .peg[data-color="8"] { background: var(--c8); }
+
+    .row.current .peg { cursor: pointer; }
+    .row.current .peg.selected { box-shadow: 0 0 0 3px var(--gl-surface), 0 0 0 5px var(--gl-accent); }
+    .peg.hidden { background: var(--gl-surface-3); color: var(--gl-muted); }
+
+    .feedback {
+      display: grid;
+      grid-template-columns: repeat(var(--key-cols, 2), 12px);
+      gap: 4px;
+      min-width: 44px;
+    }
+
+    .key {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--hole);
+    }
+
+    .key.exact { background: var(--exact); }
+    .key.near { background: var(--near); box-shadow: inset 0 0 0 1.5px var(--gl-muted); }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(var(--count, 6), 1fr);
+      gap: 8px;
+    }
+
+    .palette .peg {
+      --peg: 100%;
+      aspect-ratio: 1;
+      max-width: 52px;
+      height: auto;
+      justify-self: center;
+      cursor: pointer;
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .palette .peg:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Keep the colors and buttons in reach when the board is taller than the screen */
+    .controls {
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 0 -16px;
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+      background: color-mix(in srgb, var(--gl-bg) 92%, transparent);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .actions .btn { margin: 0; }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: var(--gl-overlay);
+      border-radius: var(--gl-radius);
+    }
+
+    .overlay[hidden] { display: none; }
+
+    .card {
+      width: min(320px, 100%);
+      padding: 24px;
+      text-align: center;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius);
+      box-shadow: var(--gl-shadow);
+    }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 1.3rem;
+    }
+
+    .card p {
+      margin: 0 0 16px;
+      color: var(--gl-muted);
+      font-size: 0.9rem;
+    }
+
+    .card .slots { justify-content: center; margin-bottom: 14px; }
+
+    .option {
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .option-label {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .option-note {
+      margin: 6px 0 0;
+      font-size: 0.8rem;
+      color: var(--gl-muted);
+    }
+
+    .segmented {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--gl-surface-2);
+      border-radius: var(--gl-radius-sm);
+    }
+
+    .segmented button {
+      flex: 1;
+      padding: 8px 6px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--gl-muted);
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .btn {
+      width: 100%;
+      margin-top: 6px;
+      padding: 11px 18px;
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn:hover:not(:disabled) { background: var(--gl-surface-2); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn.primary {
+      border-color: var(--gl-accent);
+      background: var(--gl-accent);
+      color: var(--gl-accent-fg);
+    }
+
+    .btn.primary:hover:not(:disabled) { background: var(--gl-accent-hover); }
+
+    .btn:focus-visible, .segmented button:focus-visible, .icon-btn:focus-visible, .peg:focus-visible {
+      outline: 2px solid var(--gl-accent);
+      outline-offset: 2px;
+    }
+
+    .new-best { color: var(--gl-success); font-weight: 700; }
+
+    .hint {
+      margin: 0;
+      text-align: center;
+      font-size: 0.8rem;
+      line-height: 1.9;
+      color: var(--gl-muted);
+    }
+
+    kbd {
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: var(--gl-surface-2);
+      font-family: inherit;
+    }
+
+    @media (max-width: 400px), (max-height: 760px) {
+      .rows { gap: 2px; }
+      .slots { gap: 6px; }
+      .row { gap: 8px; padding: 3px 6px; }
+      .peg { --peg: 30px; }
+    }
+
+    @media (pointer: coarse) {
+      .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="hud">
+      <div class="stat"><span>Guess</span><strong id="guess-num">1/10</strong></div>
+      <div class="stat"><span>Solved</span><strong id="solved">0</strong></div>
+      <div class="stat"><span>Best</span><strong id="best">–</strong></div>
+      <button class="icon-btn" id="menu-btn" aria-label="New game" title="New game">☰</button>
+    </div>
+
+    <div class="stage">
+      <div class="rows" id="rows"></div>
+
+      <div class="overlay" id="start-screen">
+        <div class="card">
+          <h2>Code Breaker</h2>
+          <p>Crack the hidden color code. After each guess you see how many pegs are the right color in the right spot (●) and how many are the right color in the wrong spot (○).</p>
+          <div class="option">
+            <span class="option-label" id="level-label">Difficulty</span>
+            <div class="segmented" id="level" role="group" aria-labelledby="level-label">
+              <button type="button" data-value="easy">Easy</button>
+              <button type="button" data-value="normal">Normal</button>
+              <button type="button" data-value="hard">Hard</button>
+            </div>
+            <p class="option-note" id="level-note"></p>
+          </div>
+          <button class="btn primary" id="start-btn">Start</button>
+          <a class="gl-back-link" href="../../index.html">← Back to library</a>
+        </div>
+      </div>
+
+      <div class="overlay" id="over-screen" hidden>
+        <div class="card">
+          <h2 id="over-title">Cracked!</h2>
+          <p id="over-detail"></p>
+          <div class="slots" id="over-code"></div>
+          <button class="btn primary" id="again-btn">Play again</button>
+          <button class="btn" id="change-btn">Change difficulty</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="palette" id="palette" aria-label="Colors"></div>
+
+      <div class="actions">
+        <button class="btn" id="clear-btn">Clear</button>
+        <button class="btn primary" id="submit-btn" disabled>Check</button>
+      </div>
+    </div>
+
+    <p class="hint">
+      <kbd>1</kbd>–<kbd>8</kbd> place color · <kbd>←</kbd><kbd>→</kbd> move · <kbd>Backspace</kbd> erase · <kbd>Enter</kbd> check
+    </p>
+  </main>
+
+  <script>
+  (function () {
+    const LEVELS = {
+      easy: { holes: 4, colors: 6, guesses: 10, repeats: false, note: "4 pegs, 6 colors, no repeated colors, 10 guesses." },
+      normal: { holes: 4, colors: 6, guesses: 10, repeats: true, note: "4 pegs, 6 colors, colors may repeat, 10 guesses." },
+      hard: { holes: 5, colors: 8, guesses: 12, repeats: true, note: "5 pegs, 8 colors, colors may repeat, 12 guesses." },
+    };
+    const COLOR_NAMES = ["", "red", "orange", "yellow", "green", "blue", "purple", "pink", "teal"];
+
+    const $ = (id) => document.getElementById(id);
+    const rowsEl = $("rows");
+    const paletteEl = $("palette");
+    const startScreen = $("start-screen");
+    const overScreen = $("over-screen");
+    const submitBtn = $("submit-btn");
+
+    function load(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw === null ? fallback : JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    }
+
+    function save(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    }
+
+    const settings = Object.assign({ level: "normal" }, load("code-breaker.settings", {}));
+    const stats = load("code-breaker.stats", {});
+
+    let level, secret, guesses, current, selected, status = "menu"; // menu | playing | over
+
+    function levelStats() {
+      return stats[settings.level] || (stats[settings.level] = { solved: 0, best: null });
+    }
+
+    function makeSecret() {
+      const pool = Array.from({ length: level.colors }, (_, i) => i + 1);
+      const code = [];
+      for (let i = 0; i < level.holes; i++) {
+        if (level.repeats) {
+          code.push(pool[Math.floor(Math.random() * pool.length)]);
+        } else {
+          code.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+        }
+      }
+      return code;
+    }
+
+    function score(guess, code) {
+      let exact = 0;
+      const restGuess = {};
+      const restCode = {};
+      for (let i = 0; i < code.length; i++) {
+        if (guess[i] === code[i]) exact++;
+        else {
+          restGuess[guess[i]] = (restGuess[guess[i]] || 0) + 1;
+          restCode[code[i]] = (restCode[code[i]] || 0) + 1;
+        }
+      }
+      let near = 0;
+      for (const color in restGuess) near += Math.min(restGuess[color], restCode[color] || 0);
+      return { exact, near };
+    }
+
+    function pegHtml(color, attrs = "") {
+      const label = color ? COLOR_NAMES[color] : "empty";
+      return `<span class="peg" ${color ? `data-color="${color}"` : ""} ${attrs} aria-label="${label}">${color || ""}</span>`;
+    }
+
+    function buildPalette() {
+      paletteEl.style.setProperty("--count", level.colors);
+      paletteEl.innerHTML = Array.from({ length: level.colors }, (_, i) =>
+        `<button type="button" class="peg" data-color="${i + 1}" aria-label="${COLOR_NAMES[i + 1]} (${i + 1})" title="${COLOR_NAMES[i + 1]} (${i + 1})">${i + 1}</button>`
+      ).join("");
+    }
+
+    function render() {
+      let html = "";
+      for (let i = 0; i < level.guesses; i++) {
+        const done = guesses[i];
+        const isCurrent = status === "playing" && i === guesses.length;
+        const pegs = done ? done.pegs : isCurrent ? current : new Array(level.holes).fill(0);
+        let slots = "";
+        pegs.forEach((color, j) => {
+          if (isCurrent) {
+            const label = `Position ${j + 1}: ${color ? COLOR_NAMES[color] : "empty"}`;
+            slots += `<button type="button" class="peg${j === selected ? " selected" : ""}" ${color ? `data-color="${color}"` : ""} data-slot="${j}" aria-label="${label}" aria-pressed="${j === selected}">${color || ""}</button>`;
+          } else {
+            slots += pegHtml(color);
+          }
+        });
+        let keys = "";
+        if (done) {
+          for (let k = 0; k < level.holes; k++) {
+            keys += `<span class="key${k < done.exact ? " exact" : k < done.exact + done.near ? " near" : ""}"></span>`;
+          }
+        } else {
+          keys = `<span class="key"></span>`.repeat(level.holes);
+        }
+        const fbLabel = done ? `${done.exact} right spot, ${done.near} wrong spot` : "";
+        html += `<div class="row${isCurrent ? " current" : ""}">
+          <span class="row-num">${i + 1}</span>
+          <div class="slots">${slots}</div>
+          <div class="feedback" ${fbLabel ? `role="img" aria-label="${fbLabel}" title="${fbLabel}"` : `aria-hidden="true"`}>${keys}</div>
+        </div>`;
+      }
+      const reveal = status === "over";
+      html += `<div class="row secret">
+        <span class="row-num" aria-hidden="true">🔒</span>
+        <div class="slots" aria-label="Secret code">${secret.map((c) =>
+          reveal ? pegHtml(c) : `<span class="peg hidden" aria-label="hidden">?</span>`).join("")}</div>
+        <div></div>
+      </div>`;
+      rowsEl.innerHTML = html;
+      rowsEl.style.setProperty("--key-cols", Math.ceil(level.holes / 2));
+
+      const full = current.every((c) => c);
+      submitBtn.disabled = status !== "playing" || !full;
+      paletteEl.querySelectorAll("button").forEach((b) => {
+        const used = !level.repeats && current.includes(Number(b.dataset.color)) && current[selected] !== Number(b.dataset.color);
+        b.disabled = status !== "playing" || used;
+      });
+      $("guess-num").textContent = `${Math.min(guesses.length + 1, level.guesses)}/${level.guesses}`;
+      const s = levelStats();
+      $("solved").textContent = s.solved;
+      $("best").textContent = s.best || "–";
+    }
+
+    function place(color) {
+      if (status !== "playing") return;
+      if (!level.repeats) {
+        const other = current.indexOf(color);
+        if (other !== -1 && other !== selected) return;
+      }
+      current[selected] = color;
+      const nextEmpty = current.findIndex((c, i) => !c && i > selected);
+      const anyEmpty = current.findIndex((c) => !c);
+      if (nextEmpty !== -1) selected = nextEmpty;
+      else if (anyEmpty !== -1) selected = anyEmpty;
+      render();
+    }
+
+    function erase() {
+      if (status !== "playing") return;
+      if (!current[selected] && selected > 0) selected--;
+      current[selected] = 0;
+      render();
+    }
+
+    function clearGuess() {
+      if (status !== "playing") return;
+      current = new Array(level.holes).fill(0);
+      selected = 0;
+      render();
+    }
+
+    function submit() {
+      if (status !== "playing" || !current.every((c) => c)) return;
+      const result = score(current, secret);
+      guesses.push({ pegs: current.slice(), ...result });
+      current = new Array(level.holes).fill(0);
+      selected = 0;
+      if (result.exact === level.holes) finish(true);
+      else if (guesses.length >= level.guesses) finish(false);
+      else render();
+    }
+
+    function finish(won) {
+      status = "over";
+      const s = levelStats();
+      let isBest = false;
+      if (won) {
+        s.solved++;
+        if (!s.best || guesses.length < s.best) { s.best = guesses.length; isBest = true; }
+        save("code-breaker.stats", stats);
+      }
+      render();
+      $("over-title").textContent = won ? "Cracked!" : "Out of guesses";
+      $("over-detail").innerHTML = won
+        ? `Solved in ${guesses.length} guess${guesses.length === 1 ? "" : "es"}.${isBest ? ` <span class="new-best">New best!</span>` : ""}`
+        : "The code was:";
+      $("over-code").innerHTML = won ? "" : secret.map((c) => pegHtml(c)).join("");
+      setTimeout(() => {
+        overScreen.hidden = false;
+        $("again-btn").focus();
+      }, 500);
+    }
+
+    function start() {
+      level = LEVELS[settings.level];
+      secret = makeSecret();
+      guesses = [];
+      current = new Array(level.holes).fill(0);
+      selected = 0;
+      status = "playing";
+      buildPalette();
+      render();
+      startScreen.hidden = true;
+      overScreen.hidden = true;
+    }
+
+    function toMenu() {
+      overScreen.hidden = true;
+      startScreen.hidden = false;
+      renderLevel();
+      $("start-btn").focus();
+    }
+
+    const levelGroup = $("level");
+    const renderLevel = () => {
+      levelGroup.querySelectorAll("button").forEach((b) =>
+        b.setAttribute("aria-pressed", b.dataset.value === settings.level));
+      $("level-note").textContent = LEVELS[settings.level].note;
+    };
+    levelGroup.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      settings.level = btn.dataset.value;
+      save("code-breaker.settings", settings);
+      renderLevel();
+    });
+
+    rowsEl.addEventListener("click", (e) => {
+      const slot = e.target.closest("[data-slot]");
+      if (!slot || status !== "playing") return;
+      selected = Number(slot.dataset.slot);
+      render();
+    });
+
+    paletteEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (btn) place(Number(btn.dataset.color));
+    });
+
+    $("start-btn").addEventListener("click", start);
+    $("again-btn").addEventListener("click", start);
+    $("change-btn").addEventListener("click", toMenu);
+    $("menu-btn").addEventListener("click", toMenu);
+    $("clear-btn").addEventListener("click", clearGuess);
+    submitBtn.addEventListener("click", submit);
+
+    document.addEventListener("keydown", (e) => {
+      if (status !== "playing" || !startScreen.hidden) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const digit = Number(e.key);
+      if (digit >= 1 && digit <= level.colors) {
+        e.preventDefault();
+        place(digit);
+      } else if (e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        erase();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        selected = (selected - 1 + level.holes) % level.holes;
+        render();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        selected = (selected + 1) % level.holes;
+        render();
+      } else if (e.key === "Enter" && !(e.target instanceof Element && e.target.closest("button"))) {
+        e.preventDefault();
+        submit();
+      }
+    });
+
+    // Show an empty board behind the start screen
+    level = LEVELS[settings.level];
+    secret = new Array(level.holes).fill(0);
+    guesses = [];
+    current = new Array(level.holes).fill(0);
+    selected = 0;
+    buildPalette();
+    render();
+    renderLevel();
+    $("start-btn").focus();
+  })();
+  </script>
+</body>
+</html>
