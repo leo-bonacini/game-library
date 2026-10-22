@@ -72,5 +72,13 @@ window.GAMES = [
     description: "Klondike patience: build the four foundations from Ace to King. Draw 1 or 3, undo, hints, and auto-finish.",
     tags: ["cards", "solo"],
   },
+  {
+    slug: "checkers",
+    title: "Checkers",
+    icon: "🏁",
+    color: "#a8754f",
+    description: "Draughts against a bot with American or Brazilian rules (flying kings, maximum capture). Three levels and undo.",
+    tags: ["board", "bot", "strategy"],
+  },
   // @new-games
 ];

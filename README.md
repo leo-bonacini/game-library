@@ -17,6 +17,7 @@ Open `index.html` in any modern browser to browse the library and pick a game. T
 | 🔷 2048 | [`games/2048`](games/2048) | Slide and merge tiles on 3×3 to 6×6 boards, with undo and saved progress |
 | 🧱 Tetris | [`games/tetris`](games/tetris) | Falling blocks with hold, ghost piece, SRS rotation and three starting levels |
 | 🃏 Solitaire | [`games/solitaire`](games/solitaire) | Klondike with draw 1 or 3, drag and drop, undo, hints and auto-finish |
+| 🏁 Checkers | [`games/checkers`](games/checkers) | Draughts against a bot with American or Brazilian rules |
 
 Each game folder has its own README with rules and controls.
 
