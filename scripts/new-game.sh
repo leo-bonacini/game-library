@@ -15,7 +15,7 @@ if [[ -z "$slug" || -z "$title" ]]; then
   exit 1
 fi
 if [[ ! "$slug" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
-  echo "Slug must be lowercase kebab-case, e.g. snake or connect-four" >&2
+  echo "Slug must be lowercase kebab-case, e.g. snake or word-search" >&2
   exit 1
 fi
 

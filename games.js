@@ -81,6 +81,14 @@ window.GAMES = [
     tags: ["arcade", "solo"],
   },
   {
+    slug: "checkers",
+    title: "Checkers",
+    icon: "🏁",
+    color: "#a8754f",
+    description: "Draughts against a bot with American or Brazilian rules (flying kings, maximum capture). Three levels and undo.",
+    tags: ["board", "bot", "strategy"],
+  },
+  {
     slug: "code-breaker",
     title: "Code Breaker",
     icon: "🔐",

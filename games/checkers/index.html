@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkers</title>
+  <link rel="stylesheet" href="../../shared/theme.css">
+  <script src="../../games.js"></script>
+  <script src="../../shared/layout.js" data-game="checkers"></script>
+  <style>
+    :root {
+      --sq-light: #ecdcc0;
+      --sq-dark: #a8754f;
+      --sq-highlight: rgba(91, 79, 224, 0.45);
+      --sq-last: rgba(242, 194, 48, 0.45);
+      --piece-light: #f7f2e8;
+      --piece-light-edge: #c9bca5;
+      --piece-dark: #2b2f45;
+      --piece-dark-edge: #12141f;
+      --crown-light: #b07d1a;
+      --crown-dark: #f2c230;
+    }
+
+    :root[data-theme="dark"] {
+      --sq-light: #4a4f66;
+      --sq-dark: #2a2e3e;
+      --sq-highlight: rgba(139, 128, 255, 0.5);
+      --sq-last: rgba(244, 193, 31, 0.3);
+      --piece-light: #e9ebf3;
+      --piece-light-edge: #9aa0b4;
+      --piece-dark: #d43c4c;
+      --piece-dark-edge: #8e1f2b;
+      --crown-light: #b07d1a;
+      --crown-dark: #ffe38a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app {
+      width: min(560px, 100%);
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .hud {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .stat span, .option-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--gl-muted);
+    }
+
+    .stat strong {
+      font-size: 1.1rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat.wide { flex: 2; }
+
+    .icon-btn {
+      width: 48px;
+      align-self: stretch;
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      font: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .icon-btn:hover:not(:disabled) { background: var(--gl-surface-2); }
+    .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .stage {
+      position: relative;
+      align-self: center;
+      width: min(100%, calc(100dvh - var(--gl-bar-height) - 170px));
+      min-width: 280px;
+      aspect-ratio: 1;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      width: 100%;
+      height: 100%;
+      border-radius: var(--gl-radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--gl-border);
+      box-shadow: var(--gl-shadow);
+    }
+
+    .sq {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: 0;
+      background: var(--sq-light);
+    }
+
+    .sq.dark { background: var(--sq-dark); cursor: pointer; }
+    .sq.last::before { content: ""; position: absolute; inset: 0; background: var(--sq-last); }
+    .sq.selected::before { content: ""; position: absolute; inset: 0; background: var(--sq-highlight); }
+
+    .sq.target::after {
+      content: "";
+      position: absolute;
+      width: 30%;
+      height: 30%;
+      border-radius: 50%;
+      background: var(--sq-highlight);
+    }
+
+    .sq.movable .piece { box-shadow: 0 0 0 3px var(--gl-accent), 0 3px 0 var(--edge); }
+
+    .sq:focus-visible { outline: 3px solid var(--gl-accent); outline-offset: -3px; z-index: 1; }
+
+    .piece {
+      --edge: var(--piece-light-edge);
+      position: relative;
+      width: 76%;
+      height: 76%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--piece-light);
+      box-shadow: 0 3px 0 var(--edge);
+      border: 2px solid var(--edge);
+      font-size: clamp(0.9rem, 4.5vw, 1.6rem);
+      line-height: 1;
+      color: var(--crown-light);
+      transition: opacity 0.15s;
+    }
+
+    .piece.dark {
+      --edge: var(--piece-dark-edge);
+      background: var(--piece-dark);
+      color: var(--crown-dark);
+    }
+
+    .piece.taken { opacity: 0.35; }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: var(--gl-overlay);
+      border-radius: var(--gl-radius-sm);
+      z-index: 2;
+    }
+
+    .overlay[hidden] { display: none; }
+
+    .card {
+      width: min(330px, 100%);
+      max-height: 100%;
+      overflow: auto;
+      padding: 22px;
+      text-align: center;
+      background: var(--gl-surface);
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius);
+      box-shadow: var(--gl-shadow);
+    }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 1.3rem;
+    }
+
+    .card p {
+      margin: 0 0 14px;
+      color: var(--gl-muted);
+      font-size: 0.9rem;
+    }
+
+    .option {
+      margin-bottom: 12px;
+      text-align: left;
+    }
+
+    .option-label {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .option-note {
+      margin: 6px 0 0;
+      font-size: 0.8rem;
+      color: var(--gl-muted);
+    }
+
+    .segmented {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--gl-surface-2);
+      border-radius: var(--gl-radius-sm);
+    }
+
+    .segmented button {
+      flex: 1;
+      padding: 8px 6px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--gl-muted);
+      font: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      box-shadow: var(--gl-shadow-sm);
+    }
+
+    .btn {
+      width: 100%;
+      margin-top: 6px;
+      padding: 11px 18px;
+      border: 1px solid var(--gl-border);
+      border-radius: var(--gl-radius-sm);
+      background: var(--gl-surface);
+      color: var(--gl-fg);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: var(--gl-surface-2); }
+
+    .btn.primary {
+      border-color: var(--gl-accent);
+      background: var(--gl-accent);
+      color: var(--gl-accent-fg);
+    }
+
+    .btn.primary:hover { background: var(--gl-accent-hover); }
+
+    .btn:focus-visible, .segmented button:focus-visible, .icon-btn:focus-visible {
+      outline: 2px solid var(--gl-accent);
+      outline-offset: 2px;
+    }
+
+    .status {
+      margin: 0;
+      min-height: 1.4em;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .new-best { color: var(--gl-success); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="hud">
+      <div class="stat"><span>You</span><strong id="my-count">12</strong></div>
+      <div class="stat"><span>Bot</span><strong id="bot-count">12</strong></div>
+      <div class="stat wide"><span>Record</span><strong id="record">0–0–0</strong></div>
+      <button class="icon-btn" id="undo-btn" aria-label="Undo move" title="Undo move" disabled>↶</button>
+      <button class="icon-btn" id="menu-btn" aria-label="New game" title="New game">☰</button>
+    </div>
+
+    <div class="stage">
+      <div class="board" id="board" role="grid" aria-label="Checkers board"></div>
+
+      <div class="overlay" id="start-screen">
+        <div class="card">
+          <h2>Checkers</h2>
+          <p>Jump over the bot's pieces to capture them. Reach the far side to crown a king.</p>
+          <div class="option">
+            <span class="option-label" id="rules-label">Rules</span>
+            <div class="segmented" id="rules" role="group" aria-labelledby="rules-label">
+              <button type="button" data-value="american">American</button>
+              <button type="button" data-value="brazilian">Brazilian</button>
+            </div>
+            <p class="option-note" id="rules-note"></p>
+          </div>
+          <div class="option">
+            <span class="option-label" id="side-label">Your pieces</span>
+            <div class="segmented" id="side" role="group" aria-labelledby="side-label">
+              <button type="button" data-value="light">Light</button>
+              <button type="button" data-value="dark">Dark</button>
+            </div>
+          </div>
+          <div class="option">
+            <span class="option-label" id="level-label">Bot</span>
+            <div class="segmented" id="level" role="group" aria-labelledby="level-label">
+              <button type="button" data-value="easy">Easy</button>
+              <button type="button" data-value="medium">Medium</button>
+              <button type="button" data-value="hard">Hard</button>
+            </div>
+          </div>
+          <button class="btn primary" id="start-btn">Start</button>
+          <button class="btn" id="continue-btn" hidden>Continue</button>
+          <a class="gl-back-link" href="../../index.html">← Back to library</a>
+        </div>
+      </div>
+
+      <div class="overlay" id="over-screen" hidden>
+        <div class="card">
+          <h2 id="over-title">You win!</h2>
+          <p id="over-detail"></p>
+          <button class="btn primary" id="again-btn">Play again</button>
+          <button class="btn" id="change-btn">Change settings</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="status" id="status" aria-live="polite"></p>
+  </main>
+
+  <script>
+  (function () {
+    const LIGHT = 1;
+    const DARK = -1;
+    const QUIET_DRAW_PLIES = 50;
+    const RULES = {
+      american: {
+        menCaptureBack: false,
+        flyingKings: false,
+        maxCapture: false,
+        promotionEndsMove: true,
+        first: DARK,
+        kingValue: 250,
+        note: "Dark moves first. Men capture forward only, kings move one square. Captures are mandatory.",
+      },
+      brazilian: {
+        menCaptureBack: true,
+        flyingKings: true,
+        maxCapture: true,
+        promotionEndsMove: false,
+        first: LIGHT,
+        kingValue: 320,
+        note: "Light moves first. Men capture backward too, kings fly along diagonals, and you must take the most pieces possible.",
+      },
+    };
+    const LEVELS = {
+      easy: { depth: 2, time: 200, blunder: 0.35 },
+      medium: { depth: 4, time: 400, blunder: 0 },
+      hard: { depth: 12, time: 900, blunder: 0 },
+    };
+    const DIRS = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+
+    const $ = (id) => document.getElementById(id);
+    const boardEl = $("board");
+    const statusEl = $("status");
+    const startScreen = $("start-screen");
+    const overScreen = $("over-screen");
+    const undoBtn = $("undo-btn");
+
+    function load(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw === null ? fallback : JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    }
+
+    function save(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    }
+
+    const settings = Object.assign({ rules: "american", side: "light", level: "medium" }, load("checkers.settings", {}));
+    const record = Object.assign({ wins: 0, losses: 0, draws: 0 }, load("checkers.record", {}));
+
+    let rules, me, bottom, board, turn, quiet, history, moves, selected, partial, lastMove, botTimer;
+    let status = "menu"; // menu | playing | over
+
+    // Board: 64 cells, sign is the color (LIGHT / DARK), magnitude 1 = man, 2 = king.
+    const rowOf = (i) => i >> 3;
+    const colOf = (i) => i & 7;
+    const at = (r, c) => (r < 0 || r > 7 || c < 0 || c > 7 ? -1 : r * 8 + c);
+    const forward = (color) => (color === bottom ? -1 : 1);
+    const lastRow = (color) => (color === bottom ? 0 : 7);
+
+    function initialBoard() {
+      const b = new Array(64).fill(0);
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if ((r + c) % 2 === 0) continue;
+          if (r < 3) b[r * 8 + c] = -bottom;
+          else if (r > 4) b[r * 8 + c] = bottom;
+        }
+      }
+      return b;
+    }
+
+    function capturesFrom(b, from, out) {
+      const piece = b[from];
+      const color = Math.sign(piece);
+      b[from] = 0;
+
+      function dfs(pos, path, caps, king) {
+        let extended = false;
+        for (const [dr, dc] of DIRS) {
+          if (!king && !rules.menCaptureBack && dr !== forward(color)) continue;
+          let r = rowOf(pos) + dr;
+          let c = colOf(pos) + dc;
+          if (king && rules.flyingKings) {
+            while (at(r, c) !== -1 && b[at(r, c)] === 0) { r += dr; c += dc; }
+          }
+          const mid = at(r, c);
+          if (mid === -1 || Math.sign(b[mid]) !== -color || caps.includes(mid)) continue;
+          r += dr;
+          c += dc;
+          while (at(r, c) !== -1 && b[at(r, c)] === 0) {
+            const land = at(r, c);
+            extended = true;
+            const nextPath = path.concat(land);
+            const nextCaps = caps.concat(mid);
+            if (!king && rules.promotionEndsMove && rowOf(land) === lastRow(color)) {
+              out.push({ from, path: nextPath, caps: nextCaps });
+            } else {
+              dfs(land, nextPath, nextCaps, king);
+            }
+            if (!(king && rules.flyingKings)) break;
+            r += dr;
+            c += dc;
+          }
+        }
+        if (!extended && caps.length) out.push({ from, path, caps });
+      }
+
+      dfs(from, [], [], Math.abs(piece) === 2);
+      b[from] = piece;
+    }
+
+    function generateMoves(b, color) {
+      const caps = [];
+      for (let i = 0; i < 64; i++) if (Math.sign(b[i]) === color) capturesFrom(b, i, caps);
+      if (caps.length) {
+        if (!rules.maxCapture) return caps;
+        const most = Math.max(...caps.map((m) => m.caps.length));
+        return caps.filter((m) => m.caps.length === most);
+      }
+      const list = [];
+      for (let i = 0; i < 64; i++) {
+        if (Math.sign(b[i]) !== color) continue;
+        const king = Math.abs(b[i]) === 2;
+        for (const [dr, dc] of DIRS) {
+          if (!king && dr !== forward(color)) continue;
+          let r = rowOf(i) + dr;
+          let c = colOf(i) + dc;
+          while (at(r, c) !== -1 && b[at(r, c)] === 0) {
+            list.push({ from: i, path: [at(r, c)], caps: [] });
+            if (!(king && rules.flyingKings)) break;
+            r += dr;
+            c += dc;
+          }
+        }
+      }
+      return list;
+    }
+
+    function applyMove(b, move) {
+      const next = b.slice();
+      const piece = next[move.from];
+      const to = move.path[move.path.length - 1];
+      next[move.from] = 0;
+      for (const c of move.caps) next[c] = 0;
+      next[to] = Math.abs(piece) === 1 && rowOf(to) === lastRow(Math.sign(piece)) ? piece * 2 : piece;
+      return next;
+    }
+
+    // Bot: negamax with alpha-beta and iterative deepening under a time limit
+    function evaluate(b, color) {
+      let score = 0;
+      for (let i = 0; i < 64; i++) {
+        const p = b[i];
+        if (!p) continue;
+        const sign = Math.sign(p) === color ? 1 : -1;
+        if (Math.abs(p) === 2) {
+          score += sign * rules.kingValue;
+        } else {
+          const pc = Math.sign(p);
+          const advance = pc === bottom ? 7 - rowOf(i) : rowOf(i);
+          const back = rowOf(i) === (pc === bottom ? 7 : 0) ? 6 : 0;
+          const edge = colOf(i) === 0 || colOf(i) === 7 ? -4 : 0;
+          score += sign * (100 + advance * 5 + back + edge);
+        }
+        const center = 3.5 - Math.max(Math.abs(rowOf(i) - 3.5), Math.abs(colOf(i) - 3.5));
+        score += sign * center * 2;
+      }
+      return score;
+    }
+
+    const WIN = 100000;
+    let deadline, nodes;
+
+    function negamax(b, color, depth, alpha, beta, ply) {
+      if ((++nodes & 1023) === 0 && performance.now() > deadline) throw new Error("timeout");
+      const list = generateMoves(b, color);
+      if (!list.length) return -WIN + ply;
+      // Extend while captures are pending so the bot doesn't stop mid-exchange
+      if (depth <= 0 && !list[0].caps.length) return evaluate(b, color);
+      if (depth <= -6) return evaluate(b, color);
+      list.sort((m1, m2) => m2.caps.length - m1.caps.length);
+      let bestScore = -Infinity;
+      for (const m of list) {
+        const s = -negamax(applyMove(b, m), -color, depth - 1, -beta, -alpha, ply + 1);
+        if (s > bestScore) bestScore = s;
+        if (s > alpha) alpha = s;
+        if (alpha >= beta) break;
+      }
+      return bestScore;
+    }
+
+    function chooseBotMove() {
+      const lvl = LEVELS[settings.level];
+      const list = generateMoves(board, -me);
+      if (list.length === 1) return list[0];
+      if (lvl.blunder && Math.random() < lvl.blunder) return list[Math.floor(Math.random() * list.length)];
+      deadline = performance.now() + lvl.time;
+      nodes = 0;
+      let best = list[Math.floor(Math.random() * list.length)];
+      let ordered = list.slice();
+      for (let depth = 1; depth <= lvl.depth; depth++) {
+        try {
+          const scored = ordered.map((m) => ({
+            m,
+            s: -negamax(applyMove(board, m), me, depth - 1, -Infinity, Infinity, 1) + Math.random(),
+          }));
+          scored.sort((a, b) => b.s - a.s);
+          ordered = scored.map((x) => x.m);
+          best = ordered[0];
+          if (scored[0].s > WIN / 2) break;
+        } catch {
+          break;
+        }
+      }
+      return best;
+    }
+
+    // UI
+    const sqEls = [];
+    for (let i = 0; i < 64; i++) {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "sq";
+      el.dataset.i = i;
+      el.setAttribute("role", "gridcell");
+      if ((rowOf(i) + colOf(i)) % 2 === 1) el.classList.add("dark");
+      else el.tabIndex = -1;
+      boardEl.appendChild(el);
+      sqEls.push(el);
+    }
+
+    const sqName = (i) => `${"abcdefgh"[colOf(i)]}${8 - rowOf(i)}`;
+    const colorName = (color) => (color === LIGHT ? "light" : "dark");
+
+    function matchingMoves() {
+      if (selected === null) return [];
+      return moves.filter((m) => m.from === selected && partial.every((p, k) => m.path[k] === p));
+    }
+
+    function render() {
+      // While a multi-jump is in progress, show the piece at its current stop and the jumped pieces faded
+      const shown = board.slice();
+      const taken = new Set();
+      if (selected !== null && partial.length) {
+        const m = matchingMoves()[0];
+        shown[partial[partial.length - 1]] = shown[selected];
+        shown[selected] = 0;
+        m.caps.slice(0, partial.length).forEach((c) => taken.add(c));
+      }
+      const candidates = matchingMoves();
+      const targets = new Set(candidates.map((m) => m.path[partial.length]));
+      const movable = new Set(status === "playing" && turn === me && selected === null ? moves.map((m) => m.from) : []);
+      const current = selected !== null && partial.length ? partial[partial.length - 1] : selected;
+
+      for (let i = 0; i < 64; i++) {
+        const el = sqEls[i];
+        const p = shown[i];
+        el.classList.toggle("selected", i === current);
+        el.classList.toggle("target", targets.has(i));
+        el.classList.toggle("movable", movable.has(i));
+        el.classList.toggle("last", !!lastMove && (lastMove.from === i || lastMove.path.includes(i)));
+        el.innerHTML = p
+          ? `<span class="piece${Math.sign(p) === LIGHT ? "" : " dark"}${taken.has(i) ? " taken" : ""}">${Math.abs(p) === 2 ? "♛" : ""}</span>`
+          : "";
+        if (el.classList.contains("dark")) {
+          const desc = p ? `${colorName(Math.sign(p))} ${Math.abs(p) === 2 ? "king" : "man"}` : "empty";
+          el.setAttribute("aria-label", `${sqName(i)}, ${desc}${targets.has(i) ? ", move here" : ""}`);
+        }
+      }
+
+      const mine = board.filter((p) => Math.sign(p) === me).length;
+      const theirs = board.filter((p) => Math.sign(p) === -me).length;
+      $("my-count").textContent = mine;
+      $("bot-count").textContent = theirs;
+      $("record").textContent = `${record.wins}–${record.losses}–${record.draws}`;
+      undoBtn.disabled = status !== "playing" || turn !== me || !history.length;
+
+      if (status === "playing") {
+        if (turn !== me) statusEl.textContent = "Bot is thinking…";
+        else if (moves.length && moves[0].caps.length) statusEl.textContent = "You must capture.";
+        else statusEl.textContent = "Your move.";
+      }
+    }
+
+    function beginTurn() {
+      moves = generateMoves(board, turn);
+      selected = null;
+      partial = [];
+      if (!moves.length) {
+        finish(turn === me ? "loss" : "win");
+        return;
+      }
+      if (quiet >= QUIET_DRAW_PLIES) {
+        finish("draw");
+        return;
+      }
+      render();
+      if (turn !== me) {
+        botTimer = setTimeout(() => {
+          const move = chooseBotMove();
+          play(move);
+        }, 350);
+      }
+    }
+
+    function play(move) {
+      const piece = board[move.from];
+      if (turn === me) history.push({ board, quiet, lastMove });
+      quiet = move.caps.length || Math.abs(piece) === 1 ? 0 : quiet + 1;
+      board = applyMove(board, move);
+      lastMove = move;
+      turn = -turn;
+      beginTurn();
+    }
+
+    function finish(result) {
+      status = "over";
+      if (result === "win") record.wins++;
+      else if (result === "loss") record.losses++;
+      else record.draws++;
+      save("checkers.record", record);
+      render();
+      statusEl.textContent = "";
+      $("over-title").textContent = result === "win" ? "You win!" : result === "loss" ? "The bot wins" : "Draw";
+      $("over-detail").textContent = result === "draw"
+        ? `${QUIET_DRAW_PLIES / 2} moves each with no capture and no man moved.`
+        : result === "win" ? "The bot has no moves left." : "You have no moves left.";
+      setTimeout(() => {
+        overScreen.hidden = false;
+        $("again-btn").focus();
+      }, 600);
+    }
+
+    function onSquare(i) {
+      if (status !== "playing" || turn !== me) return;
+      const candidates = matchingMoves();
+      const isTarget = candidates.some((m) => m.path[partial.length] === i);
+      if (isTarget) {
+        partial.push(i);
+        const left = matchingMoves();
+        const done = left.find((m) => m.path.length === partial.length);
+        if (done) play(done);
+        else render();
+        return;
+      }
+      if (partial.length) {
+        // Mid-capture: clicking the piece's start square cancels, anything else is ignored
+        if (i === selected) { selected = null; partial = []; render(); }
+        return;
+      }
+      if (moves.some((m) => m.from === i)) {
+        selected = selected === i ? null : i;
+      } else {
+        selected = null;
+      }
+      render();
+    }
+
+    boardEl.addEventListener("click", (e) => {
+      const sq = e.target.closest(".sq");
+      if (sq) onSquare(Number(sq.dataset.i));
+    });
+
+    boardEl.addEventListener("keydown", (e) => {
+      const sq = e.target.closest(".sq");
+      if (!sq) return;
+      const i = Number(sq.dataset.i);
+      // Arrows stay on dark squares: up/down go to the next row, left/right skip a column
+      const r = rowOf(i);
+      const c = colOf(i);
+      const options = {
+        ArrowUp: [at(r - 1, c - 1), at(r - 1, c + 1)],
+        ArrowDown: [at(r + 1, c + 1), at(r + 1, c - 1)],
+        ArrowLeft: [at(r, c - 2)],
+        ArrowRight: [at(r, c + 2)],
+      }[e.key];
+      if (!options) return;
+      e.preventDefault();
+      const next = options.find((n) => n !== -1);
+      if (next !== undefined) sqEls[next].focus();
+    });
+
+    function start() {
+      clearTimeout(botTimer);
+      rules = RULES[settings.rules];
+      me = settings.side === "light" ? LIGHT : DARK;
+      bottom = me;
+      board = initialBoard();
+      turn = rules.first;
+      quiet = 0;
+      history = [];
+      lastMove = null;
+      status = "playing";
+      startScreen.hidden = true;
+      overScreen.hidden = true;
+      beginTurn();
+      if (turn === me) sqEls[moves[0].from].focus();
+    }
+
+    function undo() {
+      if (status !== "playing" || turn !== me || !history.length) return;
+      const prev = history.pop();
+      board = prev.board;
+      quiet = prev.quiet;
+      lastMove = prev.lastMove;
+      beginTurn();
+    }
+
+    function toMenu() {
+      overScreen.hidden = true;
+      startScreen.hidden = false;
+      $("continue-btn").hidden = status !== "playing";
+      renderOptions();
+      $("start-btn").focus();
+    }
+
+    function renderOptions() {
+      for (const name of ["rules", "side", "level"]) {
+        $(name).querySelectorAll("button").forEach((b) =>
+          b.setAttribute("aria-pressed", b.dataset.value === settings[name]));
+      }
+      $("rules-note").textContent = RULES[settings.rules].note;
+    }
+
+    for (const name of ["rules", "side", "level"]) {
+      $(name).addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if (!btn) return;
+        settings[name] = btn.dataset.value;
+        save("checkers.settings", settings);
+        renderOptions();
+      });
+    }
+
+    $("start-btn").addEventListener("click", start);
+    $("again-btn").addEventListener("click", start);
+    $("change-btn").addEventListener("click", toMenu);
+    $("menu-btn").addEventListener("click", toMenu);
+    $("continue-btn").addEventListener("click", () => { startScreen.hidden = true; });
+    undoBtn.addEventListener("click", undo);
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && status === "playing" && selected !== null) {
+        selected = null;
+        partial = [];
+        render();
+      }
+    });
+
+    // Show the starting position behind the start screen
+    rules = RULES[settings.rules];
+    me = settings.side === "light" ? LIGHT : DARK;
+    bottom = me;
+    board = initialBoard();
+    turn = me;
+    moves = [];
+    history = [];
+    selected = null;
+    partial = [];
+    lastMove = null;
+    render();
+    renderOptions();
+    $("start-btn").focus();
+  })();
+  </script>
+</body>
+</html>
