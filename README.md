@@ -52,12 +52,12 @@ Every page (the library and each game) loads the same two files in `<head>`:
 ## Adding a new game
 
 ```bash
-scripts/new-game.sh breakout "Breakout" "Bounce the ball and clear every brick." "🧱" "#ef476f"
+scripts/new-game.sh word-search "Word Search" "Find every hidden word in the grid." "🔤" "#ef476f"
 ```
 
-This copies `templates/blank-game` into `games/breakout/`, fills in the title, description, icon and color, and adds an entry to `games.js`. Then:
+This copies `templates/blank-game` into `games/word-search/`, fills in the title, description, icon and color, and adds an entry to `games.js`. Then:
 
-1. Build the game in `games/breakout/index.html` (split into `css/` and `js/` files if it grows). The template already includes the shared layout.
+1. Build the game in `games/word-search/index.html` (split into `css/` and `js/` files if it grows). The template already includes the shared layout.
 2. Set its `tags` in `games.js` so it shows up under the right filters.
 3. Open the root `index.html` to see it in the library.
 
