@@ -80,5 +80,13 @@ window.GAMES = [
     description: "Bounce the ball off your paddle and clear every brick. Five layouts that loop faster, three speeds.",
     tags: ["arcade", "solo"],
   },
+  {
+    slug: "checkers",
+    title: "Checkers",
+    icon: "🏁",
+    color: "#a8754f",
+    description: "Draughts against a bot with American or Brazilian rules (flying kings, maximum capture). Three levels and undo.",
+    tags: ["board", "bot", "strategy"],
+  },
   // @new-games
 ];

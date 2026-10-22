@@ -18,6 +18,7 @@ Open `index.html` in any modern browser to browse the library and pick a game. T
 | 🧱 Tetris | [`games/tetris`](games/tetris) | Falling blocks with hold, ghost piece, SRS rotation and three starting levels |
 | 🃏 Solitaire | [`games/solitaire`](games/solitaire) | Klondike with draw 1 or 3, drag and drop, undo, hints and auto-finish |
 | 💥 Bricks | [`games/bricks`](games/bricks) | Paddle and ball brick breaker with five layouts and three speeds |
+| 🏁 Checkers | [`games/checkers`](games/checkers) | Draughts against a bot with American or Brazilian rules |
 
 Each game folder has its own README with rules and controls.
 
