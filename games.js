@@ -72,5 +72,13 @@ window.GAMES = [
     description: "Klondike patience: build the four foundations from Ace to King. Draw 1 or 3, undo, hints, and auto-finish.",
     tags: ["cards", "solo"],
   },
+  {
+    slug: "code-breaker",
+    title: "Code Breaker",
+    icon: "🔐",
+    color: "#d1495b",
+    description: "Deduce the hidden color code from right-spot and wrong-spot clues. Three difficulty levels.",
+    tags: ["puzzle", "solo"],
+  },
   // @new-games
 ];
