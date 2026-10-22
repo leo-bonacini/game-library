@@ -19,6 +19,7 @@ Open `index.html` in any modern browser to browse the library and pick a game. T
 | 🃏 Solitaire | [`games/solitaire`](games/solitaire) | Klondike with draw 1 or 3, drag and drop, undo, hints and auto-finish |
 | 💥 Bricks | [`games/bricks`](games/bricks) | Paddle and ball brick breaker with five layouts and three speeds |
 | 🏁 Checkers | [`games/checkers`](games/checkers) | Draughts against a bot with American or Brazilian rules |
+| 🔐 Code Breaker | [`games/code-breaker`](games/code-breaker) | Deduce a hidden color code from right-spot and wrong-spot clues |
 
 Each game folder has its own README with rules and controls.
 

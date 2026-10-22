@@ -88,5 +88,13 @@ window.GAMES = [
     description: "Draughts against a bot with American or Brazilian rules (flying kings, maximum capture). Three levels and undo.",
     tags: ["board", "bot", "strategy"],
   },
+  {
+    slug: "code-breaker",
+    title: "Code Breaker",
+    icon: "🔐",
+    color: "#d1495b",
+    description: "Deduce the hidden color code from right-spot and wrong-spot clues. Three difficulty levels.",
+    tags: ["puzzle", "solo"],
+  },
   // @new-games
 ];
