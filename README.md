@@ -20,6 +20,7 @@ Open `index.html` in any modern browser to browse the library and pick a game. T
 | 💥 Bricks | [`games/bricks`](games/bricks) | Paddle and ball brick breaker with five layouts and three speeds |
 | 🏁 Checkers | [`games/checkers`](games/checkers) | Draughts against a bot with American or Brazilian rules |
 | 🔐 Code Breaker | [`games/code-breaker`](games/code-breaker) | Deduce a hidden color code from right-spot and wrong-spot clues |
+| 🧩 Nonogram | [`games/nonogram`](games/nonogram) | Generated picture-logic puzzles from 5×5 to 15×15, each with one solution |
 
 Each game folder has its own README with rules and controls.
 

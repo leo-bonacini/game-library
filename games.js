@@ -96,5 +96,13 @@ window.GAMES = [
     description: "Deduce the hidden color code from right-spot and wrong-spot clues. Three difficulty levels.",
     tags: ["puzzle", "solo"],
   },
+  {
+    slug: "nonogram",
+    title: "Nonogram",
+    icon: "🧩",
+    color: "#3d5a80",
+    description: "Fill the grid from the number clues to reveal a picture. Generated 5×5 to 15×15 puzzles, each solvable by logic.",
+    tags: ["puzzle", "solo"],
+  },
   // @new-games
 ];
