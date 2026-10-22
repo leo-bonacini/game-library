@@ -73,6 +73,14 @@ window.GAMES = [
     tags: ["cards", "solo"],
   },
   {
+    slug: "bricks",
+    title: "Bricks",
+    icon: "💥",
+    color: "#ef476f",
+    description: "Bounce the ball off your paddle and clear every brick. Five layouts that loop faster, three speeds.",
+    tags: ["arcade", "solo"],
+  },
+  {
     slug: "checkers",
     title: "Checkers",
     icon: "🏁",
